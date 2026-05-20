@@ -6,6 +6,22 @@
 <title>Dashboard MB Groupe</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+// CAPTURE DU TOKEN EN PREMIER - avant tout le reste
+(function() {
+  var hash = window.location.hash;
+  if (hash && hash.indexOf('access_token') !== -1) {
+    var params = new URLSearchParams(hash.substring(1));
+    var t = params.get('access_token');
+    if (t) {
+      localStorage.setItem('bq_token', t);
+      localStorage.setItem('bq_token_ts', Date.now().toString());
+      // Nettoyer l'URL sans recharger
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+})();
+</script>
 <style>
   :root {
     --bg: #0f1117; --surface: #1a1d27; --surface2: #222636;
@@ -71,7 +87,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin-txt { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
   .err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #fca5a5; font-family: 'DM Mono', monospace; margin-bottom: 12px; display: none; }
-  .debug { background: var(--surface2); border-radius: 8px; padding: 10px; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 12px; text-align: left; max-width: 320px; word-break: break-all; display: none; }
 </style>
 </head>
 <body>
@@ -86,7 +101,6 @@
       Se connecter avec Google
     </button>
     <div style="font-size:11px;color:var(--muted)">Accès réservé à orixamedia.com</div>
-    <div class="debug" id="debugBox"></div>
   </div>
 </div>
 
@@ -158,6 +172,8 @@ const CLIENT_ID = '510789614747-6n2tkok24lah8u59ma2f33kko6mhmbe7.apps.googleuser
 const PROJECT = 'db-finances-496809';
 const SCOPE = 'https://www.googleapis.com/auth/bigquery.readonly';
 const REDIRECT_URI = 'https://michael-orixa.github.io/Dashboard-Finances/';
+const TOKEN_TTL = 3500000; // ~58 minutes
+
 const COLORS = {
   'Orixa Media': { bg: 'rgba(99,102,241,0.8)', b: '#6366f1' },
   'Feedcast': { bg: 'rgba(34,211,238,0.8)', b: '#22d3ee' },
@@ -165,12 +181,6 @@ const COLORS = {
 };
 
 let token = null, rawData = [], fE = 'all', fA = 'all', cBar, cDonut;
-
-function debug(msg) {
-  const el = document.getElementById('debugBox');
-  el.style.display = 'block';
-  el.textContent = msg;
-}
 
 function fmt(v) {
   v = Number(v);
@@ -180,40 +190,31 @@ function fmt(v) {
 }
 
 function loginGoogle() {
-  // Sauvegarder l'état avant redirection
-  sessionStorage.setItem('oauth_pending', '1');
   const url = 'https://accounts.google.com/o/oauth2/v2/auth' +
     '?client_id=' + encodeURIComponent(CLIENT_ID) +
     '&redirect_uri=' + encodeURIComponent(REDIRECT_URI) +
     '&response_type=token' +
     '&scope=' + encodeURIComponent(SCOPE) +
-    '&prompt=consent';
+    '&prompt=consent&include_granted_scopes=true';
   window.location.href = url;
 }
 
-function extractToken() {
-  // Chercher dans le hash
-  const hash = window.location.hash;
-  const search = window.location.search;
-  
-  let params = null;
-  if (hash && hash.length > 1) {
-    params = new URLSearchParams(hash.substring(1));
-  } else if (search && search.includes('access_token')) {
-    params = new URLSearchParams(search.substring(1));
-  }
-  
-  if (params && params.get('access_token')) {
-    return params.get('access_token');
-  }
+function getStoredToken() {
+  const t = localStorage.getItem('bq_token');
+  const ts = parseInt(localStorage.getItem('bq_token_ts') || '0');
+  if (t && (Date.now() - ts) < TOKEN_TTL) return t;
+  localStorage.removeItem('bq_token');
+  localStorage.removeItem('bq_token_ts');
   return null;
 }
 
-async function getUserInfo() {
+async function getUserInfo(tok) {
   const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-    headers: { Authorization: 'Bearer ' + token }
+    headers: { Authorization: 'Bearer ' + tok }
   });
-  return r.json();
+  const d = await r.json();
+  if (d.error) throw new Error('Token invalide');
+  return d;
 }
 
 async function bq(sql) {
@@ -233,10 +234,11 @@ async function bq(sql) {
   });
 }
 
-async function init() {
+async function init(tok) {
+  token = tok;
   document.getElementById('loadingOverlay').style.display = 'flex';
   try {
-    const u = await getUserInfo();
+    const u = await getUserInfo(tok);
     document.getElementById('uName').textContent = u.name;
     document.getElementById('uAvatar').src = u.picture;
     rawData = await bq(
@@ -248,8 +250,11 @@ async function init() {
     document.getElementById('dashboard').style.display = 'block';
     render();
   } catch(e) {
-    document.getElementById('loadingOverlay').style.display = 'none';
-    debug('Erreur: ' + e.message);
+    localStorage.removeItem('bq_token');
+    const el = document.getElementById('errMsg');
+    el.style.display = 'block';
+    el.textContent = 'Erreur : ' + e.message + ' — Veuillez vous reconnecter.';
+    document.getElementById('loginScreen').style.display = 'flex';
   }
   document.getElementById('loadingOverlay').style.display = 'none';
 }
@@ -317,38 +322,19 @@ function setF(type, val, btn) {
 
 function logout() {
   token=null; rawData=[];
-  sessionStorage.removeItem('oauth_token');
+  localStorage.removeItem('bq_token');
+  localStorage.removeItem('bq_token_ts');
   document.getElementById('dashboard').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
 }
 
 // Démarrage
-(function() {
-  // 1. Chercher le token dans l'URL (retour OAuth)
-  const t = extractToken();
-  if (t) {
-    token = t;
-    sessionStorage.setItem('oauth_token', t);
-    // Nettoyer l'URL
-    history.replaceState(null, '', REDIRECT_URI);
-    init();
-    return;
-  }
-  
-  // 2. Chercher dans sessionStorage
-  const saved = sessionStorage.getItem('oauth_token');
-  if (saved) {
-    token = saved;
-    init();
-    return;
-  }
-  
-  // 3. Afficher l'écran de connexion
+const storedToken = getStoredToken();
+if (storedToken) {
+  init(storedToken);
+} else {
   document.getElementById('loginScreen').style.display = 'flex';
-  
-  // Debug - afficher l'URL actuelle
-  debug('URL: ' + window.location.href.substring(0, 100));
-})();
+}
 </script>
 </body>
 </html>
