@@ -6,22 +6,6 @@
 <title>Dashboard MB Groupe</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script>
-// CAPTURE DU TOKEN EN PREMIER - avant tout le reste
-(function() {
-  var hash = window.location.hash;
-  if (hash && hash.indexOf('access_token') !== -1) {
-    var params = new URLSearchParams(hash.substring(1));
-    var t = params.get('access_token');
-    if (t) {
-      localStorage.setItem('bq_token', t);
-      localStorage.setItem('bq_token_ts', Date.now().toString());
-      // Nettoyer l'URL sans recharger
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }
-})();
-</script>
 <style>
   :root {
     --bg: #0f1117; --surface: #1a1d27; --surface2: #222636;
@@ -31,13 +15,14 @@
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
-  #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+  #loginScreen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
   .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 380px; width: 90%; }
   .login-logo { font-size: 36px; }
   .login-title { font-size: 22px; font-weight: 600; }
   .login-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
   .btn-google { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; width: 100%; justify-content: center; }
   .btn-google:hover { border-color: var(--accent); background: rgba(99,102,241,0.1); }
+  .login-status { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; min-height: 20px; }
   #dashboard { display: none; }
   .header { padding: 1.2rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
   .header-left { display: flex; align-items: center; gap: 12px; }
@@ -86,7 +71,6 @@
   .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin-txt { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
-  .err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #fca5a5; font-family: 'DM Mono', monospace; margin-bottom: 12px; display: none; }
 </style>
 </head>
 <body>
@@ -100,7 +84,7 @@
       <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Se connecter avec Google
     </button>
-    <div style="font-size:11px;color:var(--muted)">Accès réservé à orixamedia.com</div>
+    <div class="login-status" id="loginStatus">En attente de connexion...</div>
   </div>
 </div>
 
@@ -137,7 +121,6 @@
     <button class="filter-btn" onclick="setF('a','2025',this)">2025</button>
   </div>
   <div class="main">
-    <div class="err" id="errMsg"></div>
     <div class="kpi-grid">
       <div class="kpi k1"><div class="kpi-label">MB Groupe</div><div class="kpi-value" id="k1">—</div></div>
       <div class="kpi k2"><div class="kpi-label">Orixa Media</div><div class="kpi-value" id="k2">—</div></div>
@@ -172,7 +155,6 @@ const CLIENT_ID = '510789614747-6n2tkok24lah8u59ma2f33kko6mhmbe7.apps.googleuser
 const PROJECT = 'db-finances-496809';
 const SCOPE = 'https://www.googleapis.com/auth/bigquery.readonly';
 const REDIRECT_URI = 'https://michael-orixa.github.io/Dashboard-Finances/';
-const TOKEN_TTL = 3500000; // ~58 minutes
 
 const COLORS = {
   'Orixa Media': { bg: 'rgba(99,102,241,0.8)', b: '#6366f1' },
@@ -181,6 +163,11 @@ const COLORS = {
 };
 
 let token = null, rawData = [], fE = 'all', fA = 'all', cBar, cDonut;
+let authPopup = null;
+
+function setStatus(msg) {
+  document.getElementById('loginStatus').textContent = msg;
+}
 
 function fmt(v) {
   v = Number(v);
@@ -195,17 +182,49 @@ function loginGoogle() {
     '&redirect_uri=' + encodeURIComponent(REDIRECT_URI) +
     '&response_type=token' +
     '&scope=' + encodeURIComponent(SCOPE) +
-    '&prompt=consent&include_granted_scopes=true';
-  window.location.href = url;
-}
+    '&prompt=consent';
 
-function getStoredToken() {
-  const t = localStorage.getItem('bq_token');
-  const ts = parseInt(localStorage.getItem('bq_token_ts') || '0');
-  if (t && (Date.now() - ts) < TOKEN_TTL) return t;
-  localStorage.removeItem('bq_token');
-  localStorage.removeItem('bq_token_ts');
-  return null;
+  // Ouvrir en popup
+  const w = 500, h = 600;
+  const left = (screen.width - w) / 2;
+  const top = (screen.height - h) / 2;
+  authPopup = window.open(url, 'oauth', 'width='+w+',height='+h+',left='+left+',top='+top);
+
+  setStatus('Fenêtre de connexion ouverte...');
+
+  // Surveiller la popup
+  const timer = setInterval(function() {
+    if (!authPopup || authPopup.closed) {
+      clearInterval(timer);
+      // Vérifier si le token a été stocké
+      const t = localStorage.getItem('bq_token');
+      if (t) {
+        setStatus('Connecté !');
+        init(t);
+      } else {
+        setStatus('Connexion annulée. Réessayez.');
+      }
+      return;
+    }
+    try {
+      const popupUrl = authPopup.location.href;
+      if (popupUrl && popupUrl.indexOf('access_token') !== -1) {
+        const hash = authPopup.location.hash;
+        const params = new URLSearchParams(hash.substring(1));
+        const t = params.get('access_token');
+        if (t) {
+          localStorage.setItem('bq_token', t);
+          localStorage.setItem('bq_token_ts', Date.now().toString());
+          authPopup.close();
+          clearInterval(timer);
+          setStatus('Connecté !');
+          init(t);
+        }
+      }
+    } catch(e) {
+      // Cross-origin - normal pendant la redirection Google
+    }
+  }, 500);
 }
 
 async function getUserInfo(tok) {
@@ -251,9 +270,7 @@ async function init(tok) {
     render();
   } catch(e) {
     localStorage.removeItem('bq_token');
-    const el = document.getElementById('errMsg');
-    el.style.display = 'block';
-    el.textContent = 'Erreur : ' + e.message + ' — Veuillez vous reconnecter.';
+    setStatus('Erreur : ' + e.message);
     document.getElementById('loginScreen').style.display = 'flex';
   }
   document.getElementById('loadingOverlay').style.display = 'none';
@@ -326,13 +343,16 @@ function logout() {
   localStorage.removeItem('bq_token_ts');
   document.getElementById('dashboard').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
+  setStatus('En attente de connexion...');
 }
 
-// Démarrage
-const storedToken = getStoredToken();
-if (storedToken) {
-  init(storedToken);
+// Vérifier token existant au démarrage
+const stored = localStorage.getItem('bq_token');
+const storedTs = parseInt(localStorage.getItem('bq_token_ts') || '0');
+if (stored && (Date.now() - storedTs) < 3500000) {
+  init(stored);
 } else {
+  localStorage.removeItem('bq_token');
   document.getElementById('loginScreen').style.display = 'flex';
 }
 </script>
