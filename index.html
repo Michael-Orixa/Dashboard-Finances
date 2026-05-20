@@ -15,16 +15,13 @@
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
-
-  #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 2rem; }
+  #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
   .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 380px; width: 90%; }
+  .login-logo { font-size: 36px; }
   .login-title { font-size: 22px; font-weight: 600; }
   .login-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
-  .login-logo { width: 48px; height: 48px; border-radius: 12px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; }
   .btn-google { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; width: 100%; justify-content: center; }
   .btn-google:hover { border-color: var(--accent); background: rgba(99,102,241,0.1); }
-  .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
-
   #dashboard { display: none; }
   .header { padding: 1.2rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
   .header-left { display: flex; align-items: center; gap: 12px; }
@@ -35,8 +32,6 @@
   .user-name { font-size: 12px; color: var(--muted); }
   .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); }
   .btn-logout { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-  .btn-logout:hover { border-color: var(--red); color: var(--red); }
-
   .filters { padding: 0.8rem 2rem; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
   .filter-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
   .filter-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
@@ -44,7 +39,6 @@
   .filter-btn.fc.active { background: var(--feedcast); border-color: var(--feedcast); color: #0f1117; }
   .filter-btn.vp.active { background: var(--visiperf); border-color: var(--visiperf); color: #0f1117; }
   .sep { width: 1px; height: 16px; background: var(--border); }
-
   .main { padding: 1.5rem 2rem; }
   .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
   .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; position: relative; overflow: hidden; }
@@ -55,7 +49,6 @@
   .kpi.k4::after { background: var(--visiperf); }
   .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
   .kpi-value { font-size: 22px; font-weight: 600; font-family: 'DM Mono', monospace; }
-
   .grid2 { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; margin-bottom: 12px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; }
   .card-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 1rem; font-weight: 500; }
@@ -63,24 +56,22 @@
   .legend { display: flex; gap: 14px; margin-top: 10px; }
   .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
   .leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-
   .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; }
   table { width: 100%; border-collapse: collapse; }
   th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
   td { font-size: 12px; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,0.02); }
   .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
   .p-o { background: rgba(99,102,241,0.15); color: #a5b4fc; }
   .p-f { background: rgba(34,211,238,0.15); color: #67e8f9; }
   .p-v { background: rgba(245,158,11,0.15); color: #fcd34d; }
   .num { font-family: 'DM Mono', monospace; }
-
   .overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; z-index: 100; }
   .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin-txt { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
   .err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #fca5a5; font-family: 'DM Mono', monospace; margin-bottom: 12px; display: none; }
+  .debug { background: var(--surface2); border-radius: 8px; padding: 10px; font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 12px; text-align: left; max-width: 320px; word-break: break-all; display: none; }
 </style>
 </head>
 <body>
@@ -91,10 +82,11 @@
     <div class="login-title">Dashboard MB Groupe</div>
     <div class="login-sub">Connectez-vous avec votre compte Google pour accéder aux données financières du groupe.</div>
     <button class="btn-google" onclick="loginGoogle()">
-      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Se connecter avec Google
     </button>
     <div style="font-size:11px;color:var(--muted)">Accès réservé à orixamedia.com</div>
+    <div class="debug" id="debugBox"></div>
   </div>
 </div>
 
@@ -116,7 +108,6 @@
       <button class="btn-logout" onclick="logout()">Déconnexion</button>
     </div>
   </div>
-
   <div class="filters">
     <span class="filter-label">Entité</span>
     <button class="filter-btn active" onclick="setF('e','all',this)">Toutes</button>
@@ -131,7 +122,6 @@
     <button class="filter-btn" onclick="setF('a','2024',this)">2024</button>
     <button class="filter-btn" onclick="setF('a','2025',this)">2025</button>
   </div>
-
   <div class="main">
     <div class="err" id="errMsg"></div>
     <div class="kpi-grid">
@@ -167,6 +157,7 @@
 const CLIENT_ID = '510789614747-6n2tkok24lah8u59ma2f33kko6mhmbe7.apps.googleusercontent.com';
 const PROJECT = 'db-finances-496809';
 const SCOPE = 'https://www.googleapis.com/auth/bigquery.readonly';
+const REDIRECT_URI = 'https://michael-orixa.github.io/Dashboard-Finances/';
 const COLORS = {
   'Orixa Media': { bg: 'rgba(99,102,241,0.8)', b: '#6366f1' },
   'Feedcast': { bg: 'rgba(34,211,238,0.8)', b: '#22d3ee' },
@@ -174,6 +165,12 @@ const COLORS = {
 };
 
 let token = null, rawData = [], fE = 'all', fA = 'all', cBar, cDonut;
+
+function debug(msg) {
+  const el = document.getElementById('debugBox');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
 
 function fmt(v) {
   v = Number(v);
@@ -183,37 +180,57 @@ function fmt(v) {
 }
 
 function loginGoogle() {
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(location.href.split('#')[0])}&response_type=token&scope=${encodeURIComponent(SCOPE)}&prompt=select_account`;
-  location.href = url;
+  // Sauvegarder l'état avant redirection
+  sessionStorage.setItem('oauth_pending', '1');
+  const url = 'https://accounts.google.com/o/oauth2/v2/auth' +
+    '?client_id=' + encodeURIComponent(CLIENT_ID) +
+    '&redirect_uri=' + encodeURIComponent(REDIRECT_URI) +
+    '&response_type=token' +
+    '&scope=' + encodeURIComponent(SCOPE) +
+    '&prompt=consent';
+  window.location.href = url;
 }
 
-function checkToken() {
-  const h = location.hash;
-  if (h.includes('access_token')) {
-    const p = new URLSearchParams(h.substring(1));
-    token = p.get('access_token');
-    history.replaceState(null, '', location.pathname);
-    return true;
+function extractToken() {
+  // Chercher dans le hash
+  const hash = window.location.hash;
+  const search = window.location.search;
+  
+  let params = null;
+  if (hash && hash.length > 1) {
+    params = new URLSearchParams(hash.substring(1));
+  } else if (search && search.includes('access_token')) {
+    params = new URLSearchParams(search.substring(1));
   }
-  return false;
+  
+  if (params && params.get('access_token')) {
+    return params.get('access_token');
+  }
+  return null;
 }
 
 async function getUserInfo() {
-  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${token}` } });
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: 'Bearer ' + token }
+  });
   return r.json();
 }
 
 async function bq(sql) {
-  const r = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${PROJECT}/queries`, {
+  const r = await fetch('https://bigquery.googleapis.com/bigquery/v2/projects/' + PROJECT + '/queries', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: sql, useLegacySql: false, timeoutMs: 15000 })
   });
   const d = await r.json();
   if (d.error) throw new Error(d.error.message);
   if (!d.rows) return [];
   const fields = d.schema.fields.map(f => f.name);
-  return d.rows.map(row => { const o = {}; row.f.forEach((c,i) => o[fields[i]] = c.v); return o; });
+  return d.rows.map(row => {
+    const o = {};
+    row.f.forEach((c,i) => o[fields[i]] = c.v);
+    return o;
+  });
 }
 
 async function init() {
@@ -222,33 +239,32 @@ async function init() {
     const u = await getUserInfo();
     document.getElementById('uName').textContent = u.name;
     document.getElementById('uAvatar').src = u.picture;
-    rawData = await bq(`SELECT entite, EXTRACT(YEAR FROM mois) as annee, SUM(mb) as mb FROM \`${PROJECT}.Marge_brute.MB_Groupe_Consolide\` GROUP BY entite, annee ORDER BY entite, annee`);
+    rawData = await bq(
+      'SELECT entite, EXTRACT(YEAR FROM mois) as annee, SUM(mb) as mb ' +
+      'FROM `' + PROJECT + '.Marge_brute.MB_Groupe_Consolide` ' +
+      'GROUP BY entite, annee ORDER BY entite, annee'
+    );
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     render();
   } catch(e) {
-    showErr(e.message);
+    document.getElementById('loadingOverlay').style.display = 'none';
+    debug('Erreur: ' + e.message);
   }
   document.getElementById('loadingOverlay').style.display = 'none';
 }
 
-function showErr(msg) {
-  const el = document.getElementById('errMsg');
-  el.style.display = 'block';
-  el.textContent = 'Erreur : ' + msg;
-}
-
 function filtered() {
-  return rawData.filter(r => (fE === 'all' || r.entite === fE) && (fA === 'all' || String(r.annee) === fA));
+  return rawData.filter(r => (fE==='all'||r.entite===fE) && (fA==='all'||String(r.annee)===fA));
 }
 
 function render() {
   const d = filtered();
-  const tot = d.reduce((s,r) => s+Number(r.mb), 0);
+  const tot = d.reduce((s,r)=>s+Number(r.mb),0);
   document.getElementById('k1').textContent = fmt(tot);
   ['Orixa Media','Feedcast','Visiperf'].forEach((e,i) => {
-    const v = rawData.filter(r => r.entite===e && (fA==='all'||String(r.annee)===fA)).reduce((s,r)=>s+Number(r.mb),0);
-    document.getElementById(`k${i+2}`).textContent = fmt(v);
+    const v = rawData.filter(r=>r.entite===e&&(fA==='all'||String(r.annee)===fA)).reduce((s,r)=>s+Number(r.mb),0);
+    document.getElementById('k'+(i+2)).textContent = fmt(v);
   });
   renderBar(d); renderDonut(d); renderTable(d);
 }
@@ -260,8 +276,8 @@ function renderBar(d) {
   if (cBar) cBar.destroy();
   cBar = new Chart(ctx, {
     type: 'bar',
-    data: { labels: annees, datasets: ents.map(e => ({ label: e, data: annees.map(a => d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor: COLORS[e].bg, borderColor: COLORS[e].b, borderWidth: 1, borderRadius: 3 })) },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 }, callback: v => fmt(v) } } } }
+    data: { labels: annees, datasets: ents.map(e => ({ label: e, data: annees.map(a=>d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor: COLORS[e].bg, borderColor: COLORS[e].b, borderWidth: 1, borderRadius: 3 })) },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 }, callback: v=>fmt(v) } } } }
   });
 }
 
@@ -286,26 +302,53 @@ function renderTable(d) {
       const v = d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0);
       if (!v) return;
       const pc = e==='Orixa Media'?'p-o':e==='Feedcast'?'p-f':'p-v';
-      html += `<tr><td><span class="pill ${pc}">${e}</span></td><td class="num">${a}</td><td class="num">${fmt(v)}</td><td class="num">${tot>0?(v/tot*100).toFixed(1):0}%</td></tr>`;
+      html += '<tr><td><span class="pill '+pc+'">'+e+'</span></td><td class="num">'+a+'</td><td class="num">'+fmt(v)+'</td><td class="num">'+(tot>0?(v/tot*100).toFixed(1):0)+'%</td></tr>';
     });
   });
   document.getElementById('tBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
 }
 
 function setF(type, val, btn) {
-  if (type==='e') { fE = val; document.querySelectorAll('.filters .filter-btn').forEach(b => { if(['Toutes','Orixa Media','Feedcast','Visiperf'].includes(b.textContent)) { b.classList.remove('active'); } }); }
-  else { fA = val; document.querySelectorAll('.filters .filter-btn').forEach(b => { if(['Toutes','2022','2023','2024','2025'].includes(b.textContent)) { b.classList.remove('active'); } }); }
+  if (type==='e') { fE=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{if(['Toutes','Orixa Media','Feedcast','Visiperf'].includes(b.textContent))b.classList.remove('active');}); }
+  else { fA=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{if(['Toutes','2022','2023','2024','2025'].includes(b.textContent))b.classList.remove('active');}); }
   btn.classList.add('active');
   render();
 }
 
 function logout() {
-  token = null; rawData = [];
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
+  token=null; rawData=[];
+  sessionStorage.removeItem('oauth_token');
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
 }
 
-if (checkToken()) { init(); }
+// Démarrage
+(function() {
+  // 1. Chercher le token dans l'URL (retour OAuth)
+  const t = extractToken();
+  if (t) {
+    token = t;
+    sessionStorage.setItem('oauth_token', t);
+    // Nettoyer l'URL
+    history.replaceState(null, '', REDIRECT_URI);
+    init();
+    return;
+  }
+  
+  // 2. Chercher dans sessionStorage
+  const saved = sessionStorage.getItem('oauth_token');
+  if (saved) {
+    token = saved;
+    init();
+    return;
+  }
+  
+  // 3. Afficher l'écran de connexion
+  document.getElementById('loginScreen').style.display = 'flex';
+  
+  // Debug - afficher l'URL actuelle
+  debug('URL: ' + window.location.href.substring(0, 100));
+})();
 </script>
 </body>
 </html>
