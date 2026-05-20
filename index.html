@@ -154,7 +154,8 @@
 const CLIENT_ID = '510789614747-6n2tkok24lah8u59ma2f33kko6mhmbe7.apps.googleusercontent.com';
 const PROJECT = 'db-finances-496809';
 const SCOPE = 'https://www.googleapis.com/auth/bigquery.readonly';
-const REDIRECT_URI = 'https://michael-orixa.github.io/Dashboard-Finances/';
+const CALLBACK_URI = 'https://michael-orixa.github.io/Dashboard-Finances/callback.html';
+const ORIGIN = 'https://michael-orixa.github.io';
 
 const COLORS = {
   'Orixa Media': { bg: 'rgba(99,102,241,0.8)', b: '#6366f1' },
@@ -163,11 +164,8 @@ const COLORS = {
 };
 
 let token = null, rawData = [], fE = 'all', fA = 'all', cBar, cDonut;
-let authPopup = null;
 
-function setStatus(msg) {
-  document.getElementById('loginStatus').textContent = msg;
-}
+function setStatus(msg) { document.getElementById('loginStatus').textContent = msg; }
 
 function fmt(v) {
   v = Number(v);
@@ -176,55 +174,31 @@ function fmt(v) {
   return Math.round(v) + ' €';
 }
 
+// Écouter le message de la popup callback
+window.addEventListener('message', function(event) {
+  if (event.origin !== ORIGIN) return;
+  if (event.data && event.data.type === 'oauth_token') {
+    const t = event.data.token;
+    localStorage.setItem('bq_token', t);
+    localStorage.setItem('bq_token_ts', Date.now().toString());
+    setStatus('Connecté !');
+    init(t);
+  }
+});
+
 function loginGoogle() {
   const url = 'https://accounts.google.com/o/oauth2/v2/auth' +
     '?client_id=' + encodeURIComponent(CLIENT_ID) +
-    '&redirect_uri=' + encodeURIComponent(REDIRECT_URI) +
+    '&redirect_uri=' + encodeURIComponent(CALLBACK_URI) +
     '&response_type=token' +
     '&scope=' + encodeURIComponent(SCOPE) +
     '&prompt=consent';
 
-  // Ouvrir en popup
   const w = 500, h = 600;
-  const left = (screen.width - w) / 2;
-  const top = (screen.height - h) / 2;
-  authPopup = window.open(url, 'oauth', 'width='+w+',height='+h+',left='+left+',top='+top);
-
-  setStatus('Fenêtre de connexion ouverte...');
-
-  // Surveiller la popup
-  const timer = setInterval(function() {
-    if (!authPopup || authPopup.closed) {
-      clearInterval(timer);
-      // Vérifier si le token a été stocké
-      const t = localStorage.getItem('bq_token');
-      if (t) {
-        setStatus('Connecté !');
-        init(t);
-      } else {
-        setStatus('Connexion annulée. Réessayez.');
-      }
-      return;
-    }
-    try {
-      const popupUrl = authPopup.location.href;
-      if (popupUrl && popupUrl.indexOf('access_token') !== -1) {
-        const hash = authPopup.location.hash;
-        const params = new URLSearchParams(hash.substring(1));
-        const t = params.get('access_token');
-        if (t) {
-          localStorage.setItem('bq_token', t);
-          localStorage.setItem('bq_token_ts', Date.now().toString());
-          authPopup.close();
-          clearInterval(timer);
-          setStatus('Connecté !');
-          init(t);
-        }
-      }
-    } catch(e) {
-      // Cross-origin - normal pendant la redirection Google
-    }
-  }, 500);
+  const left = Math.round((screen.width - w) / 2);
+  const top = Math.round((screen.height - h) / 2);
+  window.open(url, 'oauth', 'width='+w+',height='+h+',left='+left+',top='+top);
+  setStatus('Fenêtre de connexion ouverte — autorisez l\'accès...');
 }
 
 async function getUserInfo(tok) {
@@ -246,11 +220,7 @@ async function bq(sql) {
   if (d.error) throw new Error(d.error.message);
   if (!d.rows) return [];
   const fields = d.schema.fields.map(f => f.name);
-  return d.rows.map(row => {
-    const o = {};
-    row.f.forEach((c,i) => o[fields[i]] = c.v);
-    return o;
-  });
+  return d.rows.map(row => { const o = {}; row.f.forEach((c,i) => o[fields[i]] = c.v); return o; });
 }
 
 async function init(tok) {
@@ -260,11 +230,7 @@ async function init(tok) {
     const u = await getUserInfo(tok);
     document.getElementById('uName').textContent = u.name;
     document.getElementById('uAvatar').src = u.picture;
-    rawData = await bq(
-      'SELECT entite, EXTRACT(YEAR FROM mois) as annee, SUM(mb) as mb ' +
-      'FROM `' + PROJECT + '.Marge_brute.MB_Groupe_Consolide` ' +
-      'GROUP BY entite, annee ORDER BY entite, annee'
-    );
+    rawData = await bq('SELECT entite, EXTRACT(YEAR FROM mois) as annee, SUM(mb) as mb FROM `'+PROJECT+'.Marge_brute.MB_Groupe_Consolide` GROUP BY entite, annee ORDER BY entite, annee');
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     render();
@@ -276,9 +242,7 @@ async function init(tok) {
   document.getElementById('loadingOverlay').style.display = 'none';
 }
 
-function filtered() {
-  return rawData.filter(r => (fE==='all'||r.entite===fE) && (fA==='all'||String(r.annee)===fA));
-}
+function filtered() { return rawData.filter(r => (fE==='all'||r.entite===fE) && (fA==='all'||String(r.annee)===fA)); }
 
 function render() {
   const d = filtered();
@@ -296,22 +260,14 @@ function renderBar(d) {
   const ents = ['Orixa Media','Feedcast','Visiperf'];
   const ctx = document.getElementById('cBar').getContext('2d');
   if (cBar) cBar.destroy();
-  cBar = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: annees, datasets: ents.map(e => ({ label: e, data: annees.map(a=>d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor: COLORS[e].bg, borderColor: COLORS[e].b, borderWidth: 1, borderRadius: 3 })) },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 }, callback: v=>fmt(v) } } } }
-  });
+  cBar = new Chart(ctx, { type: 'bar', data: { labels: annees, datasets: ents.map(e => ({ label: e, data: annees.map(a=>d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor: COLORS[e].bg, borderColor: COLORS[e].b, borderWidth: 1, borderRadius: 3 })) }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 }, callback: v=>fmt(v) } } } } });
 }
 
 function renderDonut(d) {
   const ents = ['Orixa Media','Feedcast','Visiperf'];
   const ctx = document.getElementById('cDonut').getContext('2d');
   if (cDonut) cDonut.destroy();
-  cDonut = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels: ents, datasets: [{ data: ents.map(e=>d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor: ents.map(e=>COLORS[e].bg), borderColor: ents.map(e=>COLORS[e].b), borderWidth: 1 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, padding: 10 } } } }
-  });
+  cDonut = new Chart(ctx, { type: 'doughnut', data: { labels: ents, datasets: [{ data: ents.map(e=>d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor: ents.map(e=>COLORS[e].bg), borderColor: ents.map(e=>COLORS[e].b), borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, padding: 10 } } } } });
 }
 
 function renderTable(d) {
@@ -319,42 +275,29 @@ function renderTable(d) {
   const ents = ['Orixa Media','Feedcast','Visiperf'];
   const tot = d.reduce((s,r)=>s+Number(r.mb),0);
   let html = '';
-  ents.forEach(e => {
-    annees.forEach(a => {
-      const v = d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0);
-      if (!v) return;
-      const pc = e==='Orixa Media'?'p-o':e==='Feedcast'?'p-f':'p-v';
-      html += '<tr><td><span class="pill '+pc+'">'+e+'</span></td><td class="num">'+a+'</td><td class="num">'+fmt(v)+'</td><td class="num">'+(tot>0?(v/tot*100).toFixed(1):0)+'%</td></tr>';
-    });
-  });
+  ents.forEach(e => { annees.forEach(a => { const v = d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0); if (!v) return; const pc = e==='Orixa Media'?'p-o':e==='Feedcast'?'p-f':'p-v'; html += '<tr><td><span class="pill '+pc+'">'+e+'</span></td><td class="num">'+a+'</td><td class="num">'+fmt(v)+'</td><td class="num">'+(tot>0?(v/tot*100).toFixed(1):0)+'%</td></tr>'; }); });
   document.getElementById('tBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
 }
 
 function setF(type, val, btn) {
   if (type==='e') { fE=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{if(['Toutes','Orixa Media','Feedcast','Visiperf'].includes(b.textContent))b.classList.remove('active');}); }
   else { fA=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{if(['Toutes','2022','2023','2024','2025'].includes(b.textContent))b.classList.remove('active');}); }
-  btn.classList.add('active');
-  render();
+  btn.classList.add('active'); render();
 }
 
 function logout() {
   token=null; rawData=[];
-  localStorage.removeItem('bq_token');
-  localStorage.removeItem('bq_token_ts');
+  localStorage.removeItem('bq_token'); localStorage.removeItem('bq_token_ts');
   document.getElementById('dashboard').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
   setStatus('En attente de connexion...');
 }
 
-// Vérifier token existant au démarrage
+// Démarrage
 const stored = localStorage.getItem('bq_token');
 const storedTs = parseInt(localStorage.getItem('bq_token_ts') || '0');
-if (stored && (Date.now() - storedTs) < 3500000) {
-  init(stored);
-} else {
-  localStorage.removeItem('bq_token');
-  document.getElementById('loginScreen').style.display = 'flex';
-}
+if (stored && (Date.now() - storedTs) < 3500000) { init(stored); }
+else { localStorage.removeItem('bq_token'); document.getElementById('loginScreen').style.display = 'flex'; }
 </script>
 </body>
 </html>
