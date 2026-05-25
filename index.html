@@ -117,6 +117,7 @@
     <div class="sep"></div>
     <span class="filter-label">Année</span>
     <button class="filter-btn active" onclick="setF('a','all',this)">Toutes</button>
+    <button class="filter-btn" onclick="setF('a','2026',this)">2026</button>
     <button class="filter-btn" onclick="setF('a','2025',this)">2025</button>
     <button class="filter-btn" onclick="setF('a','2024',this)">2024</button>
     <button class="filter-btn" onclick="setF('a','2023',this)">2023</button>
@@ -387,7 +388,7 @@ function renderTable(d) {
 
 function setF(type, val, btn) {
   const entBtns = ['Toutes','Orixa Media','Feedcast','Visiperf'];
-  const annBtns = ['Toutes','2025','2024','2023','2022'];
+  const annBtns = ['Toutes','2026','2025','2024','2023','2022'];
   const moisBtns = ['Tous','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
   if (type==='e') { fE=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(entBtns.includes(b.textContent)) b.classList.remove('active'); }); }
   else if (type==='a') { fA=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(annBtns.includes(b.textContent)) b.classList.remove('active'); }); }
