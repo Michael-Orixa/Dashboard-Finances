@@ -78,7 +78,7 @@
 </head>
 <body>
 
-<div id="loginScreen">
+<div id="loginScreen" style="display:none">
   <div class="login-card">
     <div class="login-logo">📊</div>
     <div class="login-title">Dashboard MB Groupe</div>
@@ -91,12 +91,12 @@
   </div>
 </div>
 
-<div id="loadingOverlay" class="overlay" style="display:none">
+<div id="loadingOverlay" class="overlay">
   <div class="spinner"></div>
-  <div class="spin-txt">Chargement des données BigQuery...</div>
+  <div class="spin-txt" id="loadingTxt">Initialisation...</div>
 </div>
 
-<div id="dashboard">
+<div id="dashboard" style="display:none">
   <div class="header">
     <div class="header-left">
       <div class="logo-dot"></div>
@@ -154,14 +154,13 @@
 </div>
 
 <script>
-const CLIENT_ID   = '510789614747-6n2tkok24lah8u59ma2f33kko6mhmbe7.apps.googleusercontent.com';
-const PROJECT     = 'db-finances-496809';
-const DATASET     = 'Marge_brute';
-const VIEW        = 'MB_Groupe_Consolide';
-const SCOPE       = 'https://www.googleapis.com/auth/bigquery.readonly';
-const CALLBACK_URI = 'https://michael-orixa.github.io/Dashboard-Finances/callback.html';
-const ORIGIN      = 'https://michael-orixa.github.io';
-const TOKEN_TTL   = 3500 * 1000; // 58 min (token Google = 60 min max)
+const CLIENT_ID    = '510789614747-6n2tkok24lah8u59ma2f33kko6mhmbe7.apps.googleusercontent.com';
+const PROJECT      = 'db-finances-496809';
+const DATASET      = 'Marge_brute';
+const VIEW         = 'MB_Groupe_Consolide';
+const SCOPE        = 'https://www.googleapis.com/auth/bigquery.readonly https://www.googleapis.com/auth/userinfo.profile';
+const REDIRECT_URI = 'https://michael-orixa.github.io/Dashboard-Finances/index.html';
+const TOKEN_TTL    = 3500 * 1000;
 
 const COLORS = {
   'Orixa Media': { bg: 'rgba(99,102,241,0.8)',  b: '#6366f1' },
@@ -171,161 +170,125 @@ const COLORS = {
 
 let token = null, rawData = [], fE = 'all', fA = 'all', cBar, cDonut;
 
-// ─── UI helpers ──────────────────────────────────────────────────────────────
-
+// ─── UI ───────────────────────────────────────────────────────────────────────
 function setStatus(msg, type) {
   const el = document.getElementById('loginStatus');
   el.textContent = msg;
   el.className = 'login-status' + (type ? ' ' + type : '');
 }
+function setLoading(txt) {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('loadingTxt').textContent = txt || 'Chargement...';
+}
+function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+function showLogin()   {
+  hideLoading();
+  document.getElementById('loginScreen').style.display  = 'flex';
+  document.getElementById('dashboard').style.display    = 'none';
+  document.getElementById('btnLogin').disabled = false;
+}
+function showDashboard() {
+  hideLoading();
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display   = 'block';
+}
 
 function fmt(v) {
   v = Number(v);
-  if (Math.abs(v) >= 1000000) return (v / 1000000).toFixed(1) + ' M€';
-  if (Math.abs(v) >= 1000)    return Math.round(v / 1000) + ' K€';
-  return Math.round(v) + ' €';
+  if (Math.abs(v) >= 1000000) return (v/1000000).toFixed(1)+' M€';
+  if (Math.abs(v) >= 1000)    return Math.round(v/1000)+' K€';
+  return Math.round(v)+' €';
 }
 
-function showLogin()  {
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('dashboard').style.display   = 'none';
-  document.getElementById('loadingOverlay').style.display = 'none';
-  document.getElementById('btnLogin').disabled = false;
-}
-
-function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
-function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
-
-// ─── Token storage (avec fallback sessionStorage) ────────────────────────────
-
+// ─── Storage (localStorage avec fallback sessionStorage) ─────────────────────
 function saveToken(tok) {
-  try {
-    localStorage.setItem('bq_token', tok);
-    localStorage.setItem('bq_token_ts', Date.now().toString());
-  } catch(e) {
-    try {
-      sessionStorage.setItem('bq_token', tok);
-      sessionStorage.setItem('bq_token_ts', Date.now().toString());
-    } catch(e2) { /* storage totalement bloqué — on continue sans persistance */ }
-  }
+  const ts = Date.now().toString();
+  try { localStorage.setItem('bq_token', tok); localStorage.setItem('bq_token_ts', ts); return; } catch(e) {}
+  try { sessionStorage.setItem('bq_token', tok); sessionStorage.setItem('bq_token_ts', ts); } catch(e) {}
 }
-
 function loadToken() {
-  let tok = null, ts = 0;
-  try {
-    tok = localStorage.getItem('bq_token');
-    ts  = parseInt(localStorage.getItem('bq_token_ts') || '0');
-  } catch(e) {}
-  if (!tok) {
-    try {
-      tok = sessionStorage.getItem('bq_token');
-      ts  = parseInt(sessionStorage.getItem('bq_token_ts') || '0');
-    } catch(e) {}
-  }
-  if (tok && (Date.now() - ts) < TOKEN_TTL) return tok;
+  let tok, ts;
+  try { tok = localStorage.getItem('bq_token'); ts = parseInt(localStorage.getItem('bq_token_ts')||'0'); } catch(e) {}
+  if (!tok) { try { tok = sessionStorage.getItem('bq_token'); ts = parseInt(sessionStorage.getItem('bq_token_ts')||'0'); } catch(e) {} }
+  if (tok && (Date.now()-ts) < TOKEN_TTL) return tok;
   return null;
 }
-
 function clearToken() {
   try { localStorage.removeItem('bq_token'); localStorage.removeItem('bq_token_ts'); } catch(e) {}
   try { sessionStorage.removeItem('bq_token'); sessionStorage.removeItem('bq_token_ts'); } catch(e) {}
 }
 
-// ─── OAuth2 ──────────────────────────────────────────────────────────────────
-
+// ─── OAuth2 — REDIRECTION DIRECTE (sans popup, contourne COOP) ───────────────
 function loginGoogle() {
+  // Sauvegarder l'état avant redirection
+  sessionStorage.setItem('oauth_pending', '1');
+
   const url = 'https://accounts.google.com/o/oauth2/v2/auth'
-    + '?client_id='     + encodeURIComponent(CLIENT_ID)
-    + '&redirect_uri='  + encodeURIComponent(CALLBACK_URI)
+    + '?client_id='    + encodeURIComponent(CLIENT_ID)
+    + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
     + '&response_type=token'
-    + '&scope='         + encodeURIComponent(SCOPE)
-    + '&prompt=consent'
-    + '&access_type=online';
+    + '&scope='        + encodeURIComponent(SCOPE)
+    + '&prompt=select_account';
 
-  const w = 500, h = 600;
-  const left = Math.round((screen.width  - w) / 2);
-  const top  = Math.round((screen.height - h) / 2);
-
-  const popup = window.open(url, 'oauth', 'width='+w+',height='+h+',left='+left+',top='+top);
-  document.getElementById('btnLogin').disabled = true;
-  setStatus('Fenêtre de connexion ouverte — autorisez l\'accès…');
-
-  // Sécurité : réactiver le bouton si la popup est fermée manuellement
-  const watchClose = setInterval(() => {
-    if (popup && popup.closed) {
-      clearInterval(watchClose);
-      if (!token) {
-        document.getElementById('btnLogin').disabled = false;
-        setStatus('Connexion annulée.');
-      }
-    }
-  }, 500);
+  window.location.href = url;
 }
 
-// Réception du token depuis callback.html
-window.addEventListener('message', function(event) {
-  if (event.origin !== ORIGIN) return;
-  if (!event.data || event.data.type !== 'oauth_token') return;
+// Lire le token dans le hash après retour de Google
+function extractTokenFromHash() {
+  const hash = window.location.hash;
+  if (!hash || hash.indexOf('access_token') === -1) return null;
+  const params = new URLSearchParams(hash.substring(1));
+  const tok = params.get('access_token');
+  // Nettoyer le hash de l'URL sans recharger la page
+  history.replaceState(null, '', window.location.pathname);
+  return tok;
+}
 
-  const tok = event.data.token;
-  if (!tok || typeof tok !== 'string' || tok.length < 10) {
-    setStatus('Token reçu invalide. Réessayez.', 'error');
-    document.getElementById('btnLogin').disabled = false;
-    return;
-  }
-
-  saveToken(tok);
-  setStatus('Connecté !', 'success');
-  init(tok);
-});
-
-// ─── API calls ────────────────────────────────────────────────────────────────
-
+// ─── API ──────────────────────────────────────────────────────────────────────
 async function getUserInfo(tok) {
   const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: 'Bearer ' + tok }
   });
-  if (!r.ok) throw new Error('Token invalide ou expiré (userinfo ' + r.status + ')');
+  if (!r.ok) throw new Error('Token invalide (userinfo ' + r.status + ')');
   const d = await r.json();
-  if (d.error) throw new Error('Token rejeté : ' + d.error.message);
+  if (d.error) throw new Error(d.error.message);
   return d;
 }
 
 async function bq(sql) {
-  const endpoint = 'https://bigquery.googleapis.com/bigquery/v2/projects/'
-    + PROJECT + '/queries';
-  const r = await fetch(endpoint, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql, useLegacySql: false, timeoutMs: 20000 })
-  });
+  const r = await fetch(
+    'https://bigquery.googleapis.com/bigquery/v2/projects/' + PROJECT + '/queries',
+    {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: sql, useLegacySql: false, timeoutMs: 20000 })
+    }
+  );
   if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error('BigQuery HTTP ' + r.status + ' : ' + (err.error?.message || r.statusText));
+    const e = await r.json().catch(()=>({}));
+    throw new Error('BigQuery ' + r.status + ' : ' + (e.error?.message || r.statusText));
   }
   const d = await r.json();
   if (d.error) throw new Error('BigQuery : ' + d.error.message);
-  if (!d.rows)  return [];
+  if (!d.rows) return [];
   const fields = d.schema.fields.map(f => f.name);
   return d.rows.map(row => {
     const o = {};
-    row.f.forEach((c, i) => o[fields[i]] = c.v);
+    row.f.forEach((c,i) => o[fields[i]] = c.v);
     return o;
   });
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-
 async function init(tok) {
   token = tok;
-  showLoading();
+  setLoading('Vérification du compte Google...');
   try {
-    // 1. Valider le token via userinfo
     const u = await getUserInfo(tok);
     document.getElementById('uName').textContent = u.name || u.email || '';
     if (u.picture) document.getElementById('uAvatar').src = u.picture;
 
-    // 2. Requête BigQuery
+    setLoading('Chargement des données BigQuery...');
     const sql = `
       SELECT
         entite,
@@ -336,140 +299,66 @@ async function init(tok) {
       ORDER BY entite, annee
     `;
     rawData = await bq(sql);
-
-    // 3. Afficher le dashboard
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('dashboard').style.display   = 'block';
+    saveToken(tok);
+    showDashboard();
     render();
-
   } catch(e) {
-    console.error('[Dashboard] Erreur init :', e);
+    console.error('[Dashboard] Erreur:', e);
     clearToken();
     token = null;
     showLogin();
     setStatus('Erreur : ' + e.message, 'error');
-  } finally {
-    hideLoading();
   }
 }
 
-// ─── Filtres & rendu ──────────────────────────────────────────────────────────
-
+// ─── Rendu ────────────────────────────────────────────────────────────────────
 function filtered() {
-  return rawData.filter(r =>
-    (fE === 'all' || r.entite === fE) &&
-    (fA === 'all' || String(r.annee) === fA)
-  );
+  return rawData.filter(r => (fE==='all'||r.entite===fE) && (fA==='all'||String(r.annee)===fA));
 }
 
 function render() {
-  const d   = filtered();
-  const tot = d.reduce((s, r) => s + Number(r.mb), 0);
+  const d = filtered();
+  const tot = d.reduce((s,r)=>s+Number(r.mb),0);
   document.getElementById('k1').textContent = fmt(tot);
-  ['Orixa Media', 'Feedcast', 'Visiperf'].forEach((e, i) => {
-    const v = rawData
-      .filter(r => r.entite === e && (fA === 'all' || String(r.annee) === fA))
-      .reduce((s, r) => s + Number(r.mb), 0);
-    document.getElementById('k' + (i + 2)).textContent = fmt(v);
+  ['Orixa Media','Feedcast','Visiperf'].forEach((e,i) => {
+    const v = rawData.filter(r=>r.entite===e&&(fA==='all'||String(r.annee)===fA)).reduce((s,r)=>s+Number(r.mb),0);
+    document.getElementById('k'+(i+2)).textContent = fmt(v);
   });
-  renderBar(d);
-  renderDonut(d);
-  renderTable(d);
+  renderBar(d); renderDonut(d); renderTable(d);
 }
 
 function renderBar(d) {
-  const annees = [...new Set(d.map(r => r.annee))].sort();
-  const ents   = ['Orixa Media', 'Feedcast', 'Visiperf'];
-  const ctx    = document.getElementById('cBar').getContext('2d');
+  const annees = [...new Set(d.map(r=>r.annee))].sort();
+  const ents = ['Orixa Media','Feedcast','Visiperf'];
+  const ctx = document.getElementById('cBar').getContext('2d');
   if (cBar) cBar.destroy();
-  cBar = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: annees,
-      datasets: ents.map(e => ({
-        label: e,
-        data: annees.map(a =>
-          d.filter(r => r.entite === e && r.annee === a)
-           .reduce((s, r) => s + Number(r.mb), 0)
-        ),
-        backgroundColor: COLORS[e].bg,
-        borderColor:     COLORS[e].b,
-        borderWidth: 1, borderRadius: 3
-      }))
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 }, callback: v => fmt(v) } }
-      }
-    }
-  });
+  cBar = new Chart(ctx, { type:'bar', data:{ labels:annees, datasets:ents.map(e=>({ label:e, data:annees.map(a=>d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor:COLORS[e].bg, borderColor:COLORS[e].b, borderWidth:1, borderRadius:3 })) }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 } } }, y:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 }, callback:v=>fmt(v) } } } } });
 }
 
 function renderDonut(d) {
-  const ents = ['Orixa Media', 'Feedcast', 'Visiperf'];
-  const ctx  = document.getElementById('cDonut').getContext('2d');
+  const ents = ['Orixa Media','Feedcast','Visiperf'];
+  const ctx = document.getElementById('cDonut').getContext('2d');
   if (cDonut) cDonut.destroy();
-  cDonut = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ents,
-      datasets: [{
-        data: ents.map(e => d.filter(r => r.entite === e).reduce((s, r) => s + Number(r.mb), 0)),
-        backgroundColor: ents.map(e => COLORS[e].bg),
-        borderColor:     ents.map(e => COLORS[e].b),
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '60%',
-      plugins: { legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, padding: 10 } } }
-    }
-  });
+  cDonut = new Chart(ctx, { type:'doughnut', data:{ labels:ents, datasets:[{ data:ents.map(e=>d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor:ents.map(e=>COLORS[e].bg), borderColor:ents.map(e=>COLORS[e].b), borderWidth:1 }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ position:'bottom', labels:{ color:'#6b7280', font:{ size:11 }, padding:10 } } } } });
 }
 
 function renderTable(d) {
-  const annees = [...new Set(d.map(r => r.annee))].sort().reverse();
-  const ents   = ['Orixa Media', 'Feedcast', 'Visiperf'];
-  const tot    = d.reduce((s, r) => s + Number(r.mb), 0);
+  const annees = [...new Set(d.map(r=>r.annee))].sort().reverse();
+  const ents = ['Orixa Media','Feedcast','Visiperf'];
+  const tot = d.reduce((s,r)=>s+Number(r.mb),0);
   let html = '';
-  ents.forEach(e => {
-    annees.forEach(a => {
-      const v = d.filter(r => r.entite === e && r.annee === a).reduce((s, r) => s + Number(r.mb), 0);
-      if (!v) return;
-      const pc = e === 'Orixa Media' ? 'p-o' : e === 'Feedcast' ? 'p-f' : 'p-v';
-      html += '<tr>'
-        + '<td><span class="pill ' + pc + '">' + e + '</span></td>'
-        + '<td class="num">' + a + '</td>'
-        + '<td class="num">' + fmt(v) + '</td>'
-        + '<td class="num">' + (tot > 0 ? (v / tot * 100).toFixed(1) : 0) + '%</td>'
-        + '</tr>';
-    });
-  });
-  document.getElementById('tBody').innerHTML = html ||
-    '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
+  ents.forEach(e => { annees.forEach(a => { const v = d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0); if(!v) return; const pc=e==='Orixa Media'?'p-o':e==='Feedcast'?'p-f':'p-v'; html+='<tr><td><span class="pill '+pc+'">'+e+'</span></td><td class="num">'+a+'</td><td class="num">'+fmt(v)+'</td><td class="num">'+(tot>0?(v/tot*100).toFixed(1):0)+'%</td></tr>'; }); });
+  document.getElementById('tBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
 }
 
 function setF(type, val, btn) {
-  if (type === 'e') {
-    fE = val;
-    document.querySelectorAll('.filters .filter-btn').forEach(b => {
-      if (['Toutes','Orixa Media','Feedcast','Visiperf'].includes(b.textContent)) b.classList.remove('active');
-    });
-  } else {
-    fA = val;
-    document.querySelectorAll('.filters .filter-btn').forEach(b => {
-      if (['Toutes','2022','2023','2024','2025'].includes(b.textContent)) b.classList.remove('active');
-    });
-  }
-  btn.classList.add('active');
-  render();
+  if (type==='e') { fE=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(['Toutes','Orixa Media','Feedcast','Visiperf'].includes(b.textContent)) b.classList.remove('active'); }); }
+  else { fA=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(['Toutes','2022','2023','2024','2025'].includes(b.textContent)) b.classList.remove('active'); }); }
+  btn.classList.add('active'); render();
 }
 
 function logout() {
-  token = null; rawData = [];
+  token=null; rawData=[];
   clearToken();
   showLogin();
   setStatus('En attente de connexion...');
@@ -477,21 +366,22 @@ function logout() {
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 (function() {
+  // 1. Retour depuis Google OAuth ? Le token est dans le hash
+  const freshToken = extractTokenFromHash();
+  if (freshToken) {
+    init(freshToken);
+    return;
+  }
+
+  // 2. Token en mémoire encore valide ?
   const stored = loadToken();
   if (stored) {
-    // Vérification silencieuse : token encore valide ?
-    setStatus('Vérification de la session…');
-    showLoading();
-    getUserInfo(stored)
-      .then(() => init(stored))
-      .catch(() => {
-        clearToken();
-        showLogin();
-        setStatus('Session expirée, reconnectez-vous.');
-      });
-  } else {
-    showLogin();
+    init(stored);
+    return;
   }
+
+  // 3. Rien → écran de login
+  showLogin();
 })();
 </script>
 </body>
