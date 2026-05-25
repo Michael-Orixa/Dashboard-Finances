@@ -296,8 +296,22 @@ function logout() {
 // Démarrage
 const stored = localStorage.getItem('bq_token');
 const storedTs = parseInt(localStorage.getItem('bq_token_ts') || '0');
-if (stored && (Date.now() - storedTs) < 3500000) { init(stored); }
-else { localStorage.removeItem('bq_token'); document.getElementById('loginScreen').style.display = 'flex'; }
+const TOKEN_TTL = 3500 * 1000; // 58 minutes (token Google = 60 min)
+
+if (stored && (Date.now() - storedTs) < TOKEN_TTL) {
+  // Vérifier que le token est encore valide avant d'afficher le dashboard
+  getUserInfo(stored)
+    .then(() => init(stored))
+    .catch(() => {
+      localStorage.removeItem('bq_token');
+      localStorage.removeItem('bq_token_ts');
+      document.getElementById('loginScreen').style.display = 'flex';
+      setStatus('Session expirée, reconnectez-vous.');
+    });
+} else {
+  localStorage.removeItem('bq_token');
+  document.getElementById('loginScreen').style.display = 'flex';
+}
 </script>
 </body>
 </html>
