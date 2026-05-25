@@ -121,6 +121,21 @@
     <button class="filter-btn" onclick="setF('a','2024',this)">2024</button>
     <button class="filter-btn" onclick="setF('a','2023',this)">2023</button>
     <button class="filter-btn" onclick="setF('a','2022',this)">2022</button>
+    <div class="sep"></div>
+    <span class="filter-label">Mois</span>
+    <button class="filter-btn active" onclick="setF('m','all',this)">Tous</button>
+    <button class="filter-btn" onclick="setF('m','1',this)">Jan</button>
+    <button class="filter-btn" onclick="setF('m','2',this)">Fév</button>
+    <button class="filter-btn" onclick="setF('m','3',this)">Mar</button>
+    <button class="filter-btn" onclick="setF('m','4',this)">Avr</button>
+    <button class="filter-btn" onclick="setF('m','5',this)">Mai</button>
+    <button class="filter-btn" onclick="setF('m','6',this)">Jun</button>
+    <button class="filter-btn" onclick="setF('m','7',this)">Jul</button>
+    <button class="filter-btn" onclick="setF('m','8',this)">Aoû</button>
+    <button class="filter-btn" onclick="setF('m','9',this)">Sep</button>
+    <button class="filter-btn" onclick="setF('m','10',this)">Oct</button>
+    <button class="filter-btn" onclick="setF('m','11',this)">Nov</button>
+    <button class="filter-btn" onclick="setF('m','12',this)">Déc</button>
   </div>
   <div class="main">
     <div class="kpi-grid">
@@ -131,8 +146,8 @@
     </div>
     <div class="grid2">
       <div class="card">
-        <div class="card-title">MB par année — par entité</div>
-        <div class="chart-wrap"><canvas id="cBar"></canvas></div>
+        <div class="card-title">Évolution mensuelle MB — par entité</div>
+        <div class="chart-wrap"><canvas id="cLine"></canvas></div>
         <div class="legend">
           <div class="leg-item"><div class="leg-dot" style="background:var(--orixa)"></div>Orixa Media</div>
           <div class="leg-item"><div class="leg-dot" style="background:var(--feedcast)"></div>Feedcast</div>
@@ -144,9 +159,15 @@
         <div class="chart-wrap"><canvas id="cDonut"></canvas></div>
       </div>
     </div>
+    <div style="margin-bottom:12px">
+      <div class="card">
+        <div class="card-title">MB par mois — comparaison entités</div>
+        <div class="chart-wrap"><canvas id="cBar"></canvas></div>
+      </div>
+    </div>
     <div class="table-card">
       <div class="card-title">Détail par entité et par année</div>
-      <table><thead><tr><th>Entité</th><th>Année</th><th>MB Total</th><th>Part groupe</th></tr></thead>
+      <table><thead><tr><th>Entité</th><th>Année</th><th>Mois</th><th>MB</th><th>Part groupe</th></tr></thead>
       <tbody id="tBody"></tbody></table>
     </div>
   </div>
@@ -167,7 +188,7 @@ const COLORS = {
   'Visiperf':    { bg: 'rgba(245,158,11,0.8)',  b: '#f59e0b' }
 };
 
-let token = null, rawData = [], fE = 'all', fA = 'all', cBar, cDonut;
+let token = null, rawData = [], fE = 'all', fA = 'all', fM = 'all', cBar, cDonut, cLine;
 
 // ─── UI ───────────────────────────────────────────────────────────────────────
 function setStatus(msg, type) {
@@ -292,10 +313,11 @@ async function init(tok) {
       SELECT
         entite,
         CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee,
+        CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num,
         SUM(mb) AS mb
       FROM \`${PROJECT}.${DATASET}.${VIEW}\`
-      GROUP BY entite, annee
-      ORDER BY entite, annee
+      GROUP BY entite, annee, mois_num
+      ORDER BY entite, annee, CAST(mois_num AS INT64)
     `;
     rawData = await bq(sql);
     saveToken(tok);
@@ -312,7 +334,7 @@ async function init(tok) {
 
 // ─── Rendu ────────────────────────────────────────────────────────────────────
 function filtered() {
-  return rawData.filter(r => (fE==='all'||r.entite===fE) && (fA==='all'||String(r.annee)===fA));
+  return rawData.filter(r => (fE==='all'||r.entite===fE) && (fA==='all'||String(r.annee)===fA) && (fM==='all'||String(r.mois_num)===fM));
 }
 
 function render() {
@@ -323,15 +345,25 @@ function render() {
     const v = rawData.filter(r=>r.entite===e&&(fA==='all'||String(r.annee)===fA)).reduce((s,r)=>s+Number(r.mb),0);
     document.getElementById('k'+(i+2)).textContent = fmt(v);
   });
-  renderBar(d); renderDonut(d); renderTable(d);
+  renderLine(d); renderBar(d); renderDonut(d); renderTable(d);
+}
+
+const MOIS_LABELS = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+function renderLine(d) {
+  const moisDispo = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
+  const ents = ['Orixa Media','Feedcast','Visiperf'];
+  const ctx = document.getElementById('cLine').getContext('2d');
+  if (cLine) cLine.destroy();
+  cLine = new Chart(ctx, { type:'line', data:{ labels:moisDispo.map(m=>MOIS_LABELS[m]), datasets:ents.map(e=>({ label:e, data:moisDispo.map(m=>d.filter(r=>r.entite===e&&Number(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)), borderColor:COLORS[e].b, backgroundColor:COLORS[e].bg.replace('0.8','0.1'), borderWidth:2, pointRadius:4, pointHoverRadius:6, tension:0.3, fill:false })) }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 } } }, y:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 }, callback:v=>fmt(v) } } } } });
 }
 
 function renderBar(d) {
-  const annees = [...new Set(d.map(r=>r.annee))].sort();
+  const moisDispo = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
   const ents = ['Orixa Media','Feedcast','Visiperf'];
   const ctx = document.getElementById('cBar').getContext('2d');
   if (cBar) cBar.destroy();
-  cBar = new Chart(ctx, { type:'bar', data:{ labels:annees, datasets:ents.map(e=>({ label:e, data:annees.map(a=>d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor:COLORS[e].bg, borderColor:COLORS[e].b, borderWidth:1, borderRadius:3 })) }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 } } }, y:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 }, callback:v=>fmt(v) } } } } });
+  cBar = new Chart(ctx, { type:'bar', data:{ labels:moisDispo.map(m=>MOIS_LABELS[m]), datasets:ents.map(e=>({ label:e, data:moisDispo.map(m=>d.filter(r=>r.entite===e&&Number(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)), backgroundColor:COLORS[e].bg, borderColor:COLORS[e].b, borderWidth:1, borderRadius:3 })) }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 } } }, y:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#6b7280', font:{ family:'DM Mono', size:11 }, callback:v=>fmt(v) } } } } });
 }
 
 function renderDonut(d) {
@@ -342,17 +374,24 @@ function renderDonut(d) {
 }
 
 function renderTable(d) {
-  const annees = [...new Set(d.map(r=>r.annee))].sort().reverse();
-  const ents = ['Orixa Media','Feedcast','Visiperf'];
+  const sorted = [...d].sort((a,b)=> a.annee!==b.annee ? b.annee-a.annee : Number(b.mois_num)-Number(a.mois_num));
   const tot = d.reduce((s,r)=>s+Number(r.mb),0);
   let html = '';
-  ents.forEach(e => { annees.forEach(a => { const v = d.filter(r=>r.entite===e&&r.annee===a).reduce((s,r)=>s+Number(r.mb),0); if(!v) return; const pc=e==='Orixa Media'?'p-o':e==='Feedcast'?'p-f':'p-v'; html+='<tr><td><span class="pill '+pc+'">'+e+'</span></td><td class="num">'+a+'</td><td class="num">'+fmt(v)+'</td><td class="num">'+(tot>0?(v/tot*100).toFixed(1):0)+'%</td></tr>'; }); });
-  document.getElementById('tBody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
+  sorted.forEach(r => {
+    if(!Number(r.mb)) return;
+    const pc=r.entite==='Orixa Media'?'p-o':r.entite==='Feedcast'?'p-f':'p-v';
+    html+='<tr><td><span class="pill '+pc+'">'+r.entite+'</span></td><td class="num">'+r.annee+'</td><td class="num">'+MOIS_LABELS[Number(r.mois_num)]+'</td><td class="num">'+fmt(r.mb)+'</td><td class="num">'+(tot>0?(Number(r.mb)/tot*100).toFixed(1):0)+'%</td></tr>';
+  });
+  document.getElementById('tBody').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
 }
 
 function setF(type, val, btn) {
-  if (type==='e') { fE=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(['Toutes','Orixa Media','Feedcast','Visiperf'].includes(b.textContent)) b.classList.remove('active'); }); }
-  else { fA=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(['Toutes','2022','2023','2024','2025'].includes(b.textContent)) b.classList.remove('active'); }); }
+  const entBtns = ['Toutes','Orixa Media','Feedcast','Visiperf'];
+  const annBtns = ['Toutes','2025','2024','2023','2022'];
+  const moisBtns = ['Tous','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  if (type==='e') { fE=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(entBtns.includes(b.textContent)) b.classList.remove('active'); }); }
+  else if (type==='a') { fA=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(annBtns.includes(b.textContent)) b.classList.remove('active'); }); }
+  else { fM=val; document.querySelectorAll('.filters .filter-btn').forEach(b=>{ if(moisBtns.includes(b.textContent)) b.classList.remove('active'); }); }
   btn.classList.add('active'); render();
 }
 
