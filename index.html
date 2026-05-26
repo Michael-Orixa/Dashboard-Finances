@@ -241,6 +241,20 @@
       <button class="filter-btn" onclick="setHF('Orixa',this)">Orixa</button>
       <button class="filter-btn" onclick="setHF('Orixa Media',this)">Orixa Media</button>
       <button class="filter-btn vp" onclick="setHF('Visiperf',this)">Visiperf</button>
+      <div class="sep"></div>
+      <span class="filter-label">Années</span>
+      <button class="filter-btn h-year active" onclick="setHA('all',this)">Toutes</button>
+      <button class="filter-btn h-year" onclick="setHA('2025',this)">2025</button>
+      <button class="filter-btn h-year" onclick="setHA('2024',this)">2024</button>
+      <button class="filter-btn h-year" onclick="setHA('2023',this)">2023</button>
+      <button class="filter-btn h-year" onclick="setHA('2022',this)">2022</button>
+      <button class="filter-btn h-year" onclick="setHA('2021',this)">2021</button>
+      <button class="filter-btn h-year" onclick="setHA('2020',this)">2020</button>
+      <button class="filter-btn h-year" onclick="setHA('2019',this)">2019</button>
+      <button class="filter-btn h-year" onclick="setHA('2018',this)">2018</button>
+      <button class="filter-btn h-year" onclick="setHA('2017',this)">2017</button>
+      <button class="filter-btn h-year" onclick="setHA('2016',this)">2016</button>
+      <button class="filter-btn h-year" onclick="setHA('2015',this)">2015</button>
     </div>
     <div style="padding:1.5rem 2rem">
       <div class="table-card">
@@ -278,7 +292,7 @@ const COLORS = {
 
 const MOIS_LABELS = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
-let token = null, rawData = [], histData = [], fE = 'all', fA = 'all', fM = 'all', hF = 'all';
+let token = null, rawData = [], histData = [], fE = 'all', fA = 'all', fM = 'all', hF = 'all', hA = new Set();
 let cBar, cDonut, cLine;
 
 // ─── UI ───────────────────────────────────────────────────────────────────────
@@ -500,9 +514,41 @@ function setF(type, val, btn) {
 // ─── HISTORIQUE P&L ───────────────────────────────────────────────────────────
 function setHF(val, btn) {
   hF = val;
-  document.querySelectorAll('#filters-historique .filter-btn').forEach(b => b.classList.remove('active'));
+  const entBtns = ['Groupe','Orixa','Orixa Media','Visiperf'];
+  document.querySelectorAll('#filters-historique .filter-btn').forEach(b => {
+    if (entBtns.includes(b.textContent)) b.classList.remove('active');
+  });
   btn.classList.add('active');
   document.getElementById('pl-title').textContent = 'P&L Historique — ' + (val==='all' ? 'Groupe consolidé' : val);
+  renderPL();
+}
+
+function setHA(val, btn) {
+  const allBtn = document.querySelector('#filters-historique .h-year[onclick*="all"]');
+
+  if (val === 'all') {
+    // Reset to all years
+    hA = new Set();
+    document.querySelectorAll('#filters-historique .h-year').forEach(b => b.classList.remove('active'));
+    allBtn.classList.add('active');
+  } else {
+    // Toggle the clicked year
+    if (hA.has(val)) {
+      hA.delete(val);
+      btn.classList.remove('active');
+    } else {
+      hA.add(val);
+      btn.classList.add('active');
+    }
+    // Deactivate "Toutes" when specific years are selected
+    if (hA.size > 0) {
+      allBtn.classList.remove('active');
+    } else {
+      // If no year selected, revert to "Toutes"
+      hA = new Set();
+      allBtn.classList.add('active');
+    }
+  }
   renderPL();
 }
 
@@ -510,6 +556,7 @@ function renderPL() {
   // Filtrer et grouper par année
   let data = histData;
   if (hF !== 'all') data = data.filter(r => r.entite === hF);
+  if (hA.size > 0) data = data.filter(r => hA.has(String(r.annee)));
 
   // Consolider par année (sum si plusieurs entités)
   const anneesMap = {};
