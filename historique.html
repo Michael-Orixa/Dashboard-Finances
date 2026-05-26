@@ -256,7 +256,7 @@ function renderPL() {
   const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:entities.length>1,position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
 
   if(cHistMB) cHistMB.destroy();
-  cHistMB=new Chart(document.getElementById('cHistMB'),{type:'bar',data:{labels:anneesChron,datasets:buildDatasets('mb')},options:opts});
+  cHistMB=new Chart(document.getElementById('cHistMB'),{type:'line',data:{labels:anneesChron,datasets:buildDatasets('mb').map(d=>({...d,fill:entities.length===1,backgroundColor:d.backgroundColor.replace('0.7','0.15')}))},options:opts});
 
   if(cHistEBITDA) cHistEBITDA.destroy();
   cHistEBITDA=new Chart(document.getElementById('cHistEBITDA'),{type:'line',data:{labels:anneesChron,datasets:buildDatasets('ebitda').map(d=>({...d,fill:entities.length===1,backgroundColor:d.backgroundColor.replace('0.7','0.15')}))},options:opts});
