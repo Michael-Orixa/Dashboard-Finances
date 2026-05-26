@@ -257,6 +257,16 @@
       <button class="filter-btn h-year" onclick="setHA('2015',this)">2015</button>
     </div>
     <div style="padding:1.5rem 2rem">
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="card">
+          <div class="card-title">Marge Brute — Évolution historique</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="cHistMB"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">EBITDA — Évolution historique</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="cHistEBITDA"></canvas></div>
+        </div>
+      </div>
       <div class="table-card">
         <div class="card-title" id="pl-title">P&L Historique — Groupe consolidé</div>
         <div class="pl-wrap">
@@ -293,7 +303,7 @@ const COLORS = {
 const MOIS_LABELS = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
 let token = null, rawData = [], histData = [], fE = 'all', fA = 'all', fM = 'all', hF = new Set(), hA = new Set();
-let cBar, cDonut, cLine;
+let cBar, cDonut, cLine, cHistMB, cHistEBITDA;
 
 // ─── UI ───────────────────────────────────────────────────────────────────────
 function setStatus(msg, type) {
@@ -569,6 +579,73 @@ function setHA(val, btn) {
   renderPL();
 }
 
+function renderHistCharts(anneesMap, annees) {
+  const ENTS = ['Orixa', 'Orixa Media', 'Visiperf'];
+  const CHART_COLORS = {
+    'Orixa':       { b: '#6366f1', bg: 'rgba(99,102,241,0.15)'  },
+    'Orixa Media': { b: '#22d3ee', bg: 'rgba(34,211,238,0.15)'  },
+    'Visiperf':    { b: '#f59e0b', bg: 'rgba(245,158,11,0.15)'  },
+    'Groupe':      { b: '#10b981', bg: 'rgba(16,185,129,0.15)'  }
+  };
+
+  // Determine if we show per entity or consolidated
+  const isConsolidated = hF.size === 0;
+  const entities = isConsolidated ? ['Groupe'] : [...hF];
+
+  // Build datasets per entity from raw histData
+  function buildDatasets(field) {
+    return entities.map(ent => {
+      const data = annees.map(a => {
+        if (isConsolidated) {
+          return anneesMap[a][field] || 0;
+        } else {
+          const row = histData.find(r => r.entite === ent && String(r.annee) === a);
+          return row ? Number(row[field] || 0) : 0;
+        }
+      });
+      const col = CHART_COLORS[ent] || { b: '#6366f1', bg: 'rgba(99,102,241,0.15)' };
+      return {
+        label: ent,
+        data,
+        borderColor: col.b,
+        backgroundColor: col.bg,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        fill: entities.length === 1
+      };
+    });
+  }
+
+  const chartOpts = (yLabel) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: entities.length > 1, position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, padding: 10 } } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } },
+      y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 }, callback: v => fmtRaw(v) } }
+    }
+  });
+
+  // MB chart
+  const ctxMB = document.getElementById('cHistMB').getContext('2d');
+  if (cHistMB) cHistMB.destroy();
+  cHistMB = new Chart(ctxMB, {
+    type: 'bar',
+    data: { labels: annees, datasets: buildDatasets('mb').map(d => ({ ...d, backgroundColor: d.backgroundColor.replace('0.15','0.7'), borderRadius: 3 })) },
+    options: chartOpts('MB')
+  });
+
+  // EBITDA chart - line with area fill
+  const ctxEBITDA = document.getElementById('cHistEBITDA').getContext('2d');
+  if (cHistEBITDA) cHistEBITDA.destroy();
+  cHistEBITDA = new Chart(ctxEBITDA, {
+    type: 'line',
+    data: { labels: annees, datasets: buildDatasets('ebitda') },
+    options: { ...chartOpts('EBITDA'), plugins: { ...chartOpts('EBITDA').plugins, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ' : ' + fmtRaw(ctx.raw) } } } }
+  });
+}
+
 function renderPL() {
   // Filtrer et grouper par année
   let data = histData;
@@ -637,6 +714,10 @@ function renderPL() {
   });
 
   document.getElementById('pl-body').innerHTML = bodyHtml;
+
+  // Render charts with same filtered data (annees in chronological order for charts)
+  const anneesChronologiques = Object.keys(anneesMap).sort((a,b) => a-b);
+  renderHistCharts(anneesMap, anneesChronologiques);
 }
 
 // ─── Auth & logout ────────────────────────────────────────────────────────────
