@@ -237,10 +237,10 @@
   <div id="page-historique" class="page">
     <div class="filters" id="filters-historique">
       <span class="filter-label">Périmètre</span>
-      <button class="filter-btn active" onclick="setHF('all',this)">Groupe</button>
-      <button class="filter-btn" onclick="setHF('Orixa',this)">Orixa</button>
-      <button class="filter-btn" onclick="setHF('Orixa Media',this)">Orixa Media</button>
-      <button class="filter-btn vp" onclick="setHF('Visiperf',this)">Visiperf</button>
+      <button class="filter-btn h-ent active" onclick="setHF('all',this)">Groupe</button>
+      <button class="filter-btn h-ent" onclick="setHF('Orixa',this)">Orixa</button>
+      <button class="filter-btn h-ent" onclick="setHF('Orixa Media',this)">Orixa Media</button>
+      <button class="filter-btn h-ent vp" onclick="setHF('Visiperf',this)">Visiperf</button>
       <div class="sep"></div>
       <span class="filter-label">Années</span>
       <button class="filter-btn h-year active" onclick="setHA('all',this)">Toutes</button>
@@ -292,7 +292,7 @@ const COLORS = {
 
 const MOIS_LABELS = ['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
-let token = null, rawData = [], histData = [], fE = 'all', fA = 'all', fM = 'all', hF = 'all', hA = new Set();
+let token = null, rawData = [], histData = [], fE = 'all', fA = 'all', fM = 'all', hF = new Set(), hA = new Set();
 let cBar, cDonut, cLine;
 
 // ─── UI ───────────────────────────────────────────────────────────────────────
@@ -513,13 +513,30 @@ function setF(type, val, btn) {
 
 // ─── HISTORIQUE P&L ───────────────────────────────────────────────────────────
 function setHF(val, btn) {
-  hF = val;
-  const entBtns = ['Groupe','Orixa','Orixa Media','Visiperf'];
-  document.querySelectorAll('#filters-historique .filter-btn').forEach(b => {
-    if (entBtns.includes(b.textContent)) b.classList.remove('active');
-  });
-  btn.classList.add('active');
-  document.getElementById('pl-title').textContent = 'P&L Historique — ' + (val==='all' ? 'Groupe consolidé' : val);
+  const allBtn = document.querySelector('#filters-historique .h-ent[onclick*="all"]');
+
+  if (val === 'all') {
+    hF = new Set();
+    document.querySelectorAll('#filters-historique .h-ent').forEach(b => b.classList.remove('active'));
+    allBtn.classList.add('active');
+  } else {
+    if (hF.has(val)) {
+      hF.delete(val);
+      btn.classList.remove('active');
+    } else {
+      hF.add(val);
+      btn.classList.add('active');
+    }
+    if (hF.size > 0) {
+      allBtn.classList.remove('active');
+    } else {
+      hF = new Set();
+      allBtn.classList.add('active');
+    }
+  }
+
+  const label = hF.size === 0 ? 'Groupe consolidé' : [...hF].join(' + ');
+  document.getElementById('pl-title').textContent = 'P&L Historique — ' + label;
   renderPL();
 }
 
@@ -555,7 +572,7 @@ function setHA(val, btn) {
 function renderPL() {
   // Filtrer et grouper par année
   let data = histData;
-  if (hF !== 'all') data = data.filter(r => r.entite === hF);
+  if (hF.size > 0) data = data.filter(r => hF.has(r.entite));
   if (hA.size > 0) data = data.filter(r => hA.has(String(r.annee)));
 
   // Consolider par année (sum si plusieurs entités)
