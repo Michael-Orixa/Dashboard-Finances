@@ -257,14 +257,14 @@
       <button class="filter-btn h-year" onclick="setHA('2015',this)">2015</button>
     </div>
     <div style="padding:1.5rem 2rem">
-      <div class="grid2" style="margin-bottom:12px">
-        <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem">
           <div class="card-title">Marge Brute — Évolution historique</div>
-          <div style="position:relative;height:220px;width:100%"><canvas id="cHistMB" style="display:block"></canvas></div>
+          <div style="position:relative;height:220px"><canvas id="cHistMB"></canvas></div>
         </div>
-        <div class="card">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem">
           <div class="card-title">EBITDA — Évolution historique</div>
-          <div style="position:relative;height:220px;width:100%"><canvas id="cHistEBITDA" style="display:block"></canvas></div>
+          <div style="position:relative;height:220px"><canvas id="cHistEBITDA"></canvas></div>
         </div>
       </div>
       <div class="table-card">
@@ -334,8 +334,7 @@ function showPage(page, btn) {
   document.getElementById('page-' + page).classList.add('active');
   btn.classList.add('active');
   if (page === 'historique') {
-    // Small delay to ensure DOM is visible before rendering charts
-    setTimeout(() => renderPL(), 150);
+    setTimeout(() => renderPL(), 100);
   }
 }
 
@@ -720,15 +719,9 @@ function renderPL() {
 
   document.getElementById('pl-body').innerHTML = bodyHtml;
 
-  // Render charts only if canvas elements are in DOM and visible
+  // Render charts - always defer to ensure DOM is ready
   const anneesChronologiques = Object.keys(anneesMap).sort((a,b) => a-b);
-  const canvasMB = document.getElementById('cHistMB');
-  if (canvasMB && canvasMB.offsetParent !== null) {
-    renderHistCharts(anneesMap, anneesChronologiques);
-  } else {
-    // Defer rendering until page is visible
-    setTimeout(() => renderHistCharts(anneesMap, anneesChronologiques), 200);
-  }
+  setTimeout(() => renderHistCharts(anneesMap, anneesChronologiques), 200);
 }
 
 // ─── Auth & logout ────────────────────────────────────────────────────────────
