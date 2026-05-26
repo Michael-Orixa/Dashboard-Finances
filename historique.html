@@ -32,7 +32,7 @@
   .page-body { padding:1.5rem 2rem; }
   .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
   .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
-  .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:1rem; font-weight:500; }
+  .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
   .chart-wrap { position:relative; height:220px; }
   .table-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
   .card-title-main { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
@@ -241,19 +241,15 @@ function renderPL() {
   const isConsolidated=hF.size===0;
   const entities=isConsolidated?['Groupe']:[...hF];
 
+  // Toujours une seule courbe consolidee (somme des entites selectionnees)
   function buildDatasets(field) {
-    return entities.map(ent=>{
-      const data=anneesChron.map(a=>{
-        if(isConsolidated) return anneesMap[a]?.[field]||0;
-        const row=histData.find(r=>r.entite===ent&&String(r.annee)===a);
-        return row?Number(row[field]||0):0;
-      });
-      const col=HIST_COLORS[ent]||HIST_COLORS['Groupe'];
-      return {label:ent,data,borderColor:col.b,backgroundColor:col.bg,borderWidth:2,pointRadius:4,tension:0.3};
-    });
+    const label = isConsolidated ? 'Groupe' : [...hF].join(' + ');
+    const col = HIST_COLORS['Groupe'];
+    const data = anneesChron.map(a => anneesMap[a]?.[field] || 0);
+    return [{label, data, borderColor:col.b, backgroundColor:col.bg, borderWidth:2, pointRadius:4, tension:0.3}];
   }
 
-  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:entities.length>1,position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:10}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
+  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
 
   if(cHistMB) cHistMB.destroy();
   cHistMB=new Chart(document.getElementById('cHistMB'),{type:'line',data:{labels:anneesChron,datasets:buildDatasets('mb').map(d=>({...d,fill:entities.length===1,backgroundColor:d.backgroundColor.replace('0.7','0.15')}))},options:opts});
