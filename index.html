@@ -333,7 +333,10 @@ function showPage(page, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   btn.classList.add('active');
-  if (page === 'historique') renderPL();
+  if (page === 'historique') {
+    // Small delay to ensure DOM is visible before rendering charts
+    setTimeout(() => renderPL(), 50);
+  }
 }
 
 function fmt(v) {
@@ -715,9 +718,15 @@ function renderPL() {
 
   document.getElementById('pl-body').innerHTML = bodyHtml;
 
-  // Render charts with same filtered data (annees in chronological order for charts)
+  // Render charts only if canvas elements are in DOM and visible
   const anneesChronologiques = Object.keys(anneesMap).sort((a,b) => a-b);
-  renderHistCharts(anneesMap, anneesChronologiques);
+  const canvasMB = document.getElementById('cHistMB');
+  if (canvasMB && canvasMB.offsetParent !== null) {
+    renderHistCharts(anneesMap, anneesChronologiques);
+  } else {
+    // Defer rendering until page is visible
+    setTimeout(() => renderHistCharts(anneesMap, anneesChronologiques), 100);
+  }
 }
 
 // ─── Auth & logout ────────────────────────────────────────────────────────────
