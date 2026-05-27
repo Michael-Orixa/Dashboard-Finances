@@ -35,7 +35,7 @@
   .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
   .chart-wrap { position:relative; height:220px; }
   .table-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
-  .card-title-main { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:1rem; font-weight:500; }
+  .card-title-main { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
   .pl-wrap { overflow-x:auto; }
   .pl-table { width:100%; border-collapse:collapse; font-family:"DM Mono",monospace; font-size:12px; min-width:900px; }
   .pl-table th { background:var(--surface2); color:var(--text); font-size:13px; font-weight:600; padding:10px 16px; text-align:right; border-bottom:2px solid var(--accent); white-space:nowrap; }
@@ -104,16 +104,16 @@
   <div class="page-body">
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">Marge Brute — Evolution historique</div>
+        <div class="card-title">Marge Brute — Evolution</div>
         <div class="chart-wrap"><canvas id="cHistMB"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title">EBITDA — Evolution historique</div>
+        <div class="card-title">EBITDA — Evolution</div>
         <div class="chart-wrap"><canvas id="cHistEBITDA"></canvas></div>
       </div>
     </div>
     <div class="table-card">
-      <div class="card-title-main" id="pl-title">P&L Historique — Groupe consolide</div>
+      <div class="card-title-main" id="pl-title">P&L Historique</div>
       <div class="pl-wrap">
         <table class="pl-table">
           <thead><tr id="pl-head"></tr></thead>
