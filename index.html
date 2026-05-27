@@ -229,7 +229,8 @@ async function init(tok) {
   try {
     const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+tok}}).then(r=>r.json());
     if(u.error) throw new Error(u.error.message);
-    // Vérification email temporairement désactivée
+    const EMAILS_AUTORISES = ['michael@orixamedia.com','kugen.vissouvanadin@orixamedia.com'];
+if(!EMAILS_AUTORISES.includes(u.email)) throw new Error('Accès non autorisé.');
     document.getElementById('uName').textContent=u.name||u.email||'';
     if(u.picture) document.getElementById('uAvatar').src=u.picture;
     document.getElementById('loginScreen').style.display='none';
