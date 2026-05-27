@@ -49,6 +49,7 @@
   .val-neg { color:var(--red); }
   .val-pos { color:var(--text); }
   .val-zero { color:var(--muted); }
+  .val-muted { color:var(--muted); }
   .overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:100; }
   .spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
@@ -150,6 +151,12 @@ function fmt(v) {
   if(isNaN(v)||v===0) return '<span class="val-zero">—</span>';
   return '<span class="'+(v<0?'val-neg':'val-pos')+'">'+fmtRaw(v)+'</span>';
 }
+function fmtNeutral(v) {
+  v=Number(v);
+  if(isNaN(v)||v===0) return '<span class="val-zero">—</span>';
+  if(v<0) return '<span class="val-neg">'+fmtRaw(v)+'</span>';
+  return '<span class="val-muted">'+fmtRaw(v)+'</span>';
+}
 async function bqQuery(token, sql) {
   const r=await fetch('https://bigquery.googleapis.com/bigquery/v2/projects/'+PROJECT+'/queries',{
     method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
@@ -234,7 +241,7 @@ function renderPL() {
 
   document.getElementById('pl-head').innerHTML='<th></th>'+annees.map(a=>'<th>'+a+'</th>').join('');
   document.getElementById('pl-body').innerHTML=PL_ROWS.map(row=>
-    '<tr class="'+(row.solde?'solde':'')+'"><td>'+row.label+'</td>'+annees.map(a=>'<td>'+fmt(anneesMap[a][row.field]||0)+'</td>').join('')+'</tr>'
+    '<tr class="'+(row.solde?'solde':'')+'"><td>'+row.label+'</td>'+annees.map(a=>'<td>'+(row.solde?fmt(anneesMap[a][row.field]||0):fmtNeutral(anneesMap[a][row.field]||0))+'</td>').join('')+'</tr>'
   ).join('');
 
   // Graphiques
