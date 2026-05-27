@@ -47,7 +47,7 @@
   .pl-table tr:hover td { background:rgba(255,255,255,0.02); }
   .pl-table tr.solde:hover td { background:rgba(255,255,255,0.05); }
   .val-neg { color:var(--red); }
-  .val-pos { color:var(--muted); }
+  .val-pos { color:var(--text); }
   .val-zero { color:var(--muted); }
   .overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:100; }
   .spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
@@ -173,7 +173,7 @@ const HIST_COLORS = {
 };
 
 const PL_ROWS = [
-  {label:'CA',field:'ca',solde:false},
+  {label:'CA',field:'ca',solde:false, neutral:true},
   {label:'MB',field:'mb',solde:true},
   {label:'Autres achats et charges externes',field:'ace',solde:false},
   {label:'Fees Direction',field:'fees_direction',solde:false},
