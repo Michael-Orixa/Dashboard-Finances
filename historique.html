@@ -232,7 +232,7 @@ function renderPL() {
   const annees=Object.keys(anneesMap).sort((a,b)=>b-a);
   const anneesChron=Object.keys(anneesMap).sort((a,b)=>a-b);
 
-  document.getElementById('pl-head').innerHTML='<th>Indicateur</th>'+annees.map(a=>'<th>'+a+'</th>').join('');
+  document.getElementById('pl-head').innerHTML='<th></th>'+annees.map(a=>'<th>'+a+'</th>').join('');
   document.getElementById('pl-body').innerHTML=PL_ROWS.map(row=>
     '<tr class="'+(row.solde?'solde':'')+'"><td>'+row.label+'</td>'+annees.map(a=>'<td>'+fmt(anneesMap[a][row.field]||0)+'</td>').join('')+'</tr>'
   ).join('');
