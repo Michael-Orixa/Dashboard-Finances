@@ -237,7 +237,7 @@ if(!EMAILS_AUTORISES.includes(u.email)) throw new Error('Accès non autorisé.')
     document.getElementById('loadingTxt').textContent='Chargement MB...';
     rawData=await fetch('https://bigquery.googleapis.com/bigquery/v2/projects/db-finances-496809/queries',{
       method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
-      body:JSON.stringify({query:'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_Groupe_Consolide` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)',useLegacySql:false,timeoutMs:20000})
+      body:JSON.stringify({query:'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_Realisee_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)',useLegacySql:false,timeoutMs:20000})
     }).then(r=>r.json()).then(d=>{
       if(d.error) throw new Error(d.error.message);
       if(!d.rows) return [];
