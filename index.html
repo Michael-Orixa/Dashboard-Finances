@@ -168,7 +168,7 @@ const COLORS = {
   'Visiperf':    {bg:'rgba(245,158,11,0.8)',b:'#f59e0b'}
 };
 
-let token=null, rawData=[], fE='all', fA='all', fM='all', cBar, cDonut, cLine;
+let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cDonut, cLine;
 
 function saveToken(tok) {
   const ts = Date.now().toString();
@@ -239,14 +239,32 @@ if(!EMAILS_AUTORISES.includes(u.email)) throw new Error('Accès non autorisé.')
 }
 
 function filtered() {
-  return rawData.filter(r=>(fE==='all'||r.entite===fE)&&(fA==='all'||String(r.annee)===fA)&&(fM==='all'||String(r.mois_num)===fM));
+  return rawData.filter(r =>
+    (fEnt.size === 0 || fEnt.has(r.entite)) &&
+    String(r.annee) === fAnnee
+  );
 }
 
-function setF(type,val,btn) {
-  if(type==='e') fE=val; else if(type==='a') fA=val; else fM=val;
-  const groups={e:['Toutes','Orixa Media','Feedcast','Visiperf'],a:['Toutes','2026','2025','2024','2023','2022'],m:['Tous','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']};
-  document.querySelectorAll('.filters .filter-btn').forEach(b=>{if(groups[type].includes(b.textContent))b.classList.remove('active');});
-  btn.classList.add('active'); render();
+function setEnt(val, btn) {
+  const allBtn = document.querySelector('.filter-btn[onclick*="all"]');
+  if(val === 'all') {
+    fEnt = new Set();
+    document.querySelectorAll('.filter-btn[onclick*="setEnt"]').forEach(b => b.classList.remove('active'));
+    allBtn.classList.add('active');
+  } else {
+    fEnt.has(val) ? fEnt.delete(val) : fEnt.add(val);
+    if(fEnt.size > 0) allBtn.classList.remove('active');
+    else { fEnt = new Set(); allBtn.classList.add('active'); }
+    btn.classList.toggle('active', fEnt.has(val));
+  }
+  render();
+}
+
+function setAnnee(val, btn) {
+  fAnnee = val;
+  document.querySelectorAll('.filter-btn[onclick*="setAnnee"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
 }
 
 function render() {
