@@ -110,35 +110,16 @@
 
 <div class="main-content">
   <div class="filters">
-    <span class="filter-label">Entité</span>
-    <button class="filter-btn active" onclick="setF('e','all',this)">Toutes</button>
-    <button class="filter-btn" onclick="setF('e','Orixa Media',this)">Orixa Media</button>
-    <button class="filter-btn fc" onclick="setF('e','Feedcast',this)">Feedcast</button>
-    <button class="filter-btn vp" onclick="setF('e','Visiperf',this)">Visiperf</button>
-    <div class="sep"></div>
-    <span class="filter-label">Année</span>
-    <button class="filter-btn active" onclick="setF('a','all',this)">Toutes</button>
-    <button class="filter-btn" onclick="setF('a','2026',this)">2026</button>
-    <button class="filter-btn" onclick="setF('a','2025',this)">2025</button>
-    <button class="filter-btn" onclick="setF('a','2024',this)">2024</button>
-    <button class="filter-btn" onclick="setF('a','2023',this)">2023</button>
-    <button class="filter-btn" onclick="setF('a','2022',this)">2022</button>
-    <div class="sep"></div>
-    <span class="filter-label">Mois</span>
-    <button class="filter-btn active" onclick="setF('m','all',this)">Tous</button>
-    <button class="filter-btn" onclick="setF('m','1',this)">Jan</button>
-    <button class="filter-btn" onclick="setF('m','2',this)">Fév</button>
-    <button class="filter-btn" onclick="setF('m','3',this)">Mar</button>
-    <button class="filter-btn" onclick="setF('m','4',this)">Avr</button>
-    <button class="filter-btn" onclick="setF('m','5',this)">Mai</button>
-    <button class="filter-btn" onclick="setF('m','6',this)">Jun</button>
-    <button class="filter-btn" onclick="setF('m','7',this)">Jul</button>
-    <button class="filter-btn" onclick="setF('m','8',this)">Aoû</button>
-    <button class="filter-btn" onclick="setF('m','9',this)">Sep</button>
-    <button class="filter-btn" onclick="setF('m','10',this)">Oct</button>
-    <button class="filter-btn" onclick="setF('m','11',this)">Nov</button>
-    <button class="filter-btn" onclick="setF('m','12',this)">Déc</button>
-  </div>
+  <span class="filter-label">Périmètre</span>
+  <button class="filter-btn active" onclick="setEnt('all',this)">Groupe</button>
+  <button class="filter-btn" onclick="setEnt('Orixa Media',this)">Orixa Media</button>
+  <button class="filter-btn fc" onclick="setEnt('Feedcast',this)">Feedcast</button>
+  <button class="filter-btn vp" onclick="setEnt('Visiperf',this)">Visiperf</button>
+  <div class="sep"></div>
+  <span class="filter-label">Année</span>
+  <button class="filter-btn active" onclick="setAnnee('2026',this)">2026</button>
+  <button class="filter-btn" onclick="setAnnee('2025',this)">2025</button>
+</div>
   <div class="page-body">
     <div class="kpi-grid">
       <div class="kpi k1"><div class="kpi-label">MB Groupe</div><div class="kpi-value" id="k1">—</div></div>
