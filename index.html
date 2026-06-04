@@ -131,11 +131,7 @@
       <div class="card">
         <div class="card-title">Évolution mensuelle MB — par entité</div>
         <div class="chart-wrap"><canvas id="cLine"></canvas></div>
-        <div class="legend">
-          <div class="leg-item"><div class="leg-dot" style="background:var(--orixa)"></div>Orixa Media</div>
-          <div class="leg-item"><div class="leg-dot" style="background:var(--feedcast)"></div>Feedcast</div>
-          <div class="leg-item"><div class="leg-dot" style="background:var(--visiperf)"></div>Visiperf</div>
-        </div>
+       
       </div>
       <div class="card">
         <div class="card-title">Répartition par entité</div>
@@ -169,7 +165,8 @@ const COLORS = {
 };
 
 let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cDonut, cLine;
-
+let rawDataPrev=[], rawDataObj=[];
+  
 function saveToken(tok) {
   const ts = Date.now().toString();
   try { localStorage.setItem('bq_token',tok); localStorage.setItem('bq_token_ts',ts); } catch(e) {}
@@ -202,7 +199,16 @@ function fmtRaw(v) {
   if(abs>=1000) return Math.round(v/1000)+' K€';
   return Math.round(v)+' €';
 }
+function parseBQ(d) {
+  if(d.error) throw new Error(d.error.message);
+  if(!d.rows) return [];
+  const fields=d.schema.fields.map(f=>f.name);
+  return d.rows.map(row=>{const o={};row.f.forEach((c,i)=>o[fields[i]]=c.v);return o;});
+}
 
+
+
+  
 async function init(tok) {
   token=tok;
   document.getElementById('loadingOverlay').style.display='flex';
@@ -283,8 +289,67 @@ function render() {
   const mois=[...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
   const ents=['Orixa Media','Feedcast','Visiperf'];
   const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
-  if(cLine) cLine.destroy();
-  cLine=new Chart(document.getElementById('cLine'),{type:'line',data:{labels:mois.map(m=>MOIS[m]),datasets:ents.map(e=>({label:e,data:mois.map(m=>d.filter(r=>r.entite===e&&Number(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)),borderColor:COLORS[e]?.b,backgroundColor:COLORS[e]?.bg.replace('0.8','0.1'),borderWidth:2,pointRadius:4,tension:0.3,fill:false}))},options:base});
+  // Courbe réalisé N (année sélectionnée)
+const realN = Array.from({length:12},(_,i)=>{
+  const m=String(i+1);
+  return d.filter(r=>String(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)||null;
+});
+
+// Courbe réalisé N-1
+const anneeN1 = String(Number(fAnnee)-1);
+const realN1 = Array.from({length:12},(_,i)=>{
+  const m=String(i+1);
+  return rawData.filter(r=>
+    String(r.annee)===anneeN1 &&
+    String(r.mois_num)===m &&
+    (fEnt.size===0||fEnt.has(r.entite))
+  ).reduce((s,r)=>s+Number(r.mb),0)||null;
+});
+
+// Courbe objectif N
+const objN = Array.from({length:12},(_,i)=>{
+  const m=String(i+1);
+  return rawDataObj.filter(r=>
+    String(r.annee)===fAnnee &&
+    String(r.mois_num)===m &&
+    (fEnt.size===0||fEnt.has(r.entite))
+  ).reduce((s,r)=>s+Number(r.mb),0)||null;
+});
+
+// Courbe réalisé+prévision N (réalisé si dispo, sinon prévision)
+const realPrevN = Array.from({length:12},(_,i)=>{
+  const m=String(i+1);
+  const r=realN[i];
+  if(r && r>0) return r;
+  return rawDataPrev.filter(x=>
+    String(x.annee)===fAnnee &&
+    String(x.mois_num)===m &&
+    (fEnt.size===0||fEnt.has(x.entite))
+  ).reduce((s,x)=>s+Number(x.mb),0)||null;
+});
+
+const MOIS_LABELS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+if(cLine) cLine.destroy();
+cLine=new Chart(document.getElementById('cLine'),{
+  type:'line',
+  data:{
+    labels:MOIS_LABELS,
+    datasets:[
+      {label:'Objectif',data:objN,borderColor:'rgba(255,255,255,0.25)',borderDash:[6,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(255,255,255,0.25)'},
+      {label:'Réalisé N-1',data:realN1,borderColor:'rgba(107,114,128,0.7)',borderDash:[3,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(107,114,128,0.7)'},
+      {label:'Réalisé + Prévision',data:realPrevN,borderColor:'#6366f1',borderWidth:2.5,pointRadius:4,tension:0.3,fill:false,pointBackgroundColor:'#6366f1'},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:14,usePointStyle:true}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},
+      y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}
+    }
+  }
+});
   if(cBar) cBar.destroy();
   cBar=new Chart(document.getElementById('cBar'),{type:'bar',data:{labels:mois.map(m=>MOIS[m]),datasets:ents.map(e=>({label:e,data:mois.map(m=>d.filter(r=>r.entite===e&&Number(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)),backgroundColor:COLORS[e]?.bg,borderColor:COLORS[e]?.b,borderWidth:1,borderRadius:3}))},options:base});
   if(cDonut) cDonut.destroy();
