@@ -281,7 +281,17 @@ function setAnnee(val, btn) {
 
 function render() {
   const d=filtered(), tot=d.reduce((s,r)=>s+Number(r.mb),0);
-  document.getElementById('k1').textContent=fmtRaw(tot);
+  const totRealPrev = Array.from({length:12},(_,i)=>{
+  const m=String(i+1);
+  const r=d.filter(x=>String(x.mois_num)===m).reduce((s,x)=>s+Number(x.mb),0);
+  if(r && r>0) return r;
+  return rawDataPrev.filter(x=>
+    String(x.annee)===fAnnee &&
+    String(x.mois_num)===m &&
+    (fEnt.size===0||fEnt.has(x.entite))
+  ).reduce((s,x)=>s+Number(x.mb),0);
+}).reduce((s,v)=>s+v,0);
+document.getElementById('k1').textContent=fmtRaw(totRealPrev);
   ['Orixa Media','Feedcast','Visiperf'].forEach((e,i)=>{
     const v=d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0);
     document.getElementById('k'+(i+2)).textContent=fmtRaw(v);
