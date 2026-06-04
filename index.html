@@ -270,8 +270,8 @@ function setAnnee(val, btn) {
 function render() {
   const d=filtered(), tot=d.reduce((s,r)=>s+Number(r.mb),0);
   document.getElementById('k1').textContent=fmtRaw(tot);
-  ['Orixa Media','Feedcast','Visiperf'].forEach((e,i)=>{
-    const v=rawData.filter(r=>r.entite===e&&(fA==='all'||String(r.annee)===fA)&&(fM==='all'||String(r.mois_num)===fM)).reduce((s,r)=>s+Number(r.mb),0);
+ ['Orixa Media','Feedcast','Visiperf'].forEach((e,i)=>{
+    const v=d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0);
     document.getElementById('k'+(i+2)).textContent=fmtRaw(v);
   });
   const mois=[...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
