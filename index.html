@@ -38,10 +38,10 @@
   .kpi.k3::after { background:var(--feedcast); } .kpi.k4::after { background:var(--visiperf); }
   .kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin-bottom:8px; }
   .kpi-value { font-size:22px; font-weight:600; font-family:"DM Mono",monospace; }
-  .charts-row { display:grid; grid-template-columns:3fr 2fr; gap:12px; margin-bottom:12px; }
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
+  .charts-row { display:grid; grid-template-columns:3fr 2fr; gap:12px; margin-bottom:12px; min-width:0; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; min-width:0; overflow:hidden; }
   .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
-  .chart-wrap { position:relative; height:220px; }
+  .chart-wrap { position:relative; height:220px; min-width:0; }
   .legend { display:flex; gap:14px; margin-top:10px; }
   .leg-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
   .leg-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
