@@ -357,7 +357,11 @@ cLine=new Chart(document.getElementById('cLine'),{
   options:{
     responsive:true,maintainAspectRatio:false,
     plugins:{
-  legend:{display:true,position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:14,usePointStyle:true,filter:item=>item.text!=='_fill'}},
+  legend:{display:true,position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:14,usePointStyle:true,filter:item=>item.text!=='_fill',
+sort:(a,b)=>{
+  const ordre=['Réalisé + Prévision','Réalisé N-1','Objectif'];
+  return ordre.indexOf(a.text)-ordre.indexOf(b.text);
+}}},
   tooltip:{filter:item=>item.dataset.label!=='_fill'}
 },
     scales:{
