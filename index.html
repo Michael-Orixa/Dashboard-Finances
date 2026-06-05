@@ -337,7 +337,9 @@ const realPrevN = Array.from({length:12},(_,i)=>{
     (fEnt.size===0||fEnt.has(x.entite))
   ).reduce((s,x)=>s+Number(x.mb),0)||null;
 });
-
+// Dernier mois avec data dans MB réalisée
+const lastRealIdx = realN.reduce((acc,v,i)=>(v&&v>0)?i:acc,-1);
+const fillReal = realPrevN.map((v,i)=>i<=lastRealIdx?v:null); 
 const MOIS_LABELS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
 if(cLine) cLine.destroy();
@@ -349,11 +351,15 @@ cLine=new Chart(document.getElementById('cLine'),{
       {label:'Objectif',data:objN,borderColor:'rgba(239,68,68,0.7)',borderDash:[6,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(239,68,68,0.7)'},
       {label:'Réalisé N-1',data:realN1,borderColor:'rgba(107,114,128,0.7)',borderDash:[3,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(107,114,128,0.7)'},
       {label:'Réalisé + Prévision',data:realPrevN,borderColor:'#6366f1',borderWidth:2.5,pointRadius:4,tension:0.3,fill:false,pointBackgroundColor:'#6366f1'},
+      {label:'_fill',data:fillReal,borderColor:'rgba(0,0,0,0)',backgroundColor:'rgba(99,102,241,0.12)',fill:'origin',pointRadius:0,pointHoverRadius:0,tension:0.3,borderWidth:0},
     ]
   },
   options:{
     responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:true,position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:14,usePointStyle:true}}},
+    plugins:{
+  legend:{display:true,position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:14,usePointStyle:true,filter:item=>item.text!=='_fill'}},
+  tooltip:{filter:item=>item.dataset.label!=='_fill'}
+},
     scales:{
       x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},
       y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}
