@@ -22,7 +22,7 @@
   .user-avatar { width:26px; height:26px; border-radius:50%; border:1px solid var(--border); flex-shrink:0; }
   .btn-logout { padding:5px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:11px; cursor:pointer; width:100%; text-align:center; }
   .btn-logout:hover { border-color:var(--red); color:var(--red); }
-  .main-content { margin-left:200px; flex:1; }
+  .main-content { margin-left:200px; flex:1; min-width:0; }
   .filters { padding:0.7rem 2rem; display:flex; gap:8px; align-items:center; border-bottom:1px solid var(--border); flex-wrap:nowrap; overflow-x:auto; }
   .filter-label { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
   .filter-btn { padding:4px 12px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:"DM Sans",sans-serif; cursor:pointer; transition:all 0.15s; }
@@ -30,10 +30,10 @@
   .filter-btn.vp.active { background:var(--visiperf); border-color:var(--visiperf); color:#0f1117; }
   .sep { width:1px; height:16px; background:var(--border); align-self:center; }
   .page-body { padding:1.5rem 2rem; }
-  .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
+  .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; min-width:0; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; min-width:0; overflow:hidden; }
   .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
-  .chart-wrap { position:relative; height:220px; }
+  .chart-wrap { position:relative; height:220px; min-width:0; }
   .table-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
   .card-title-main { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
   .pl-wrap { overflow-x:auto; }
