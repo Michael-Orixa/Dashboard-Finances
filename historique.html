@@ -30,7 +30,7 @@
   .filter-btn.vp.active { background:var(--visiperf); border-color:var(--visiperf); color:#0f1117; }
   .sep { width:1px; height:16px; background:var(--border); align-self:center; }
   .page-body { padding:1.5rem 2rem; }
-  .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; min-width:0; }
+  .charts-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px; min-width:0; }
   .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; min-width:0; overflow:hidden; }
   .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
   .chart-wrap { position:relative; height:220px; min-width:0; }
@@ -112,6 +112,10 @@
         <div class="card-title">EBITDA — Evolution</div>
         <div class="chart-wrap"><canvas id="cHistEBITDA"></canvas></div>
       </div>
+      <div class="card">
+        <div class="card-title">Résultat Net — Evolution</div>
+        <div class="chart-wrap"><canvas id="cHistRN"></canvas></div>
+      </div>
     </div>
     <div class="table-card">
       <div class="card-title-main" id="pl-title">P&L Historique</div>
@@ -170,7 +174,7 @@ async function bqQuery(token, sql) {
   return d.rows.map(row=>{const o={};row.f.forEach((c,i)=>o[fields[i]]=c.v);return o;});
 }
 
-let token=null, histData=[], hF=new Set(), hA=new Set(), cHistMB, cHistEBITDA;
+let token=null, histData=[], hF=new Set(), hA=new Set(), cHistMB, cHistEBITDA, cHistRN;
 
 const HIST_COLORS = {
   'Orixa':       {bg:'rgba(99,102,241,0.7)',b:'#6366f1'},
@@ -263,6 +267,9 @@ function renderPL() {
 
   if(cHistEBITDA) cHistEBITDA.destroy();
   cHistEBITDA=new Chart(document.getElementById('cHistEBITDA'),{type:'line',data:{labels:anneesChron,datasets:buildDatasets('ebitda').map(d=>({...d,fill:entities.length===1,backgroundColor:d.backgroundColor.replace('0.7','0.15')}))},options:opts});
+
+  if(cHistRN) cHistRN.destroy();
+  cHistRN=new Chart(document.getElementById('cHistRN'),{type:'line',data:{labels:anneesChron,datasets:buildDatasets('resultat_net').map(d=>({...d,fill:entities.length===1,backgroundColor:d.backgroundColor.replace('0.7','0.15')}))},options:opts});
 }
 
 async function init() {
