@@ -376,9 +376,7 @@ sort:(a,b)=>{
   cBar=new Chart(document.getElementById('cBar'),{type:'bar',data:{labels:mois.map(m=>MOIS[m]),datasets:ents.map(e=>({label:e,data:mois.map(m=>d.filter(r=>r.entite===e&&Number(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)),backgroundColor:COLORS[e]?.bg,borderColor:COLORS[e]?.b,borderWidth:1,borderRadius:3}))},options:base});
   if(cDonut) cDonut.destroy();
   cDonut=new Chart(document.getElementById('cDonut'),{type:'doughnut',data:{labels:ents,datasets:[{data:ents.map(e=>d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0)),backgroundColor:ents.map(e=>COLORS[e]?.bg),borderColor:ents.map(e=>COLORS[e]?.b),borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#6b7280',font:{size:11},padding:10}}}}});
-  const sorted=[...d].sort((a,b)=>a.annee!==b.annee?b.annee-a.annee:Number(b.mois_num)-Number(a.mois_num));
-  const html=sorted.filter(r=>Number(r.mb)).map(r=>{const pc=r.entite==='Orixa Media'?'p-o':r.entite==='Feedcast'?'p-f':'p-v';return '<tr><td><span class="pill '+pc+'">'+r.entite+'</span></td><td>'+r.annee+'</td><td>'+MOIS[Number(r.mois_num)]+'</td><td>'+fmtRaw(r.mb)+'</td><td>'+(tot>0?(Number(r.mb)/tot*100).toFixed(1):0)+'%</td></tr>';}).join('');
-  document.getElementById('tBody').innerHTML=html||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
+ 
   renderPL();
 }
 function sumAnnuel(data, annee, ents) {
