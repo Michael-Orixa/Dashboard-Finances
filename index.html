@@ -142,12 +142,13 @@
       <div class="card-title">MB par mois — comparaison entités</div>
       <div class="chart-wrap"><canvas id="cBar"></canvas></div>
     </div>
-    <div class="table-card">
-      <div class="card-title-main">Détail par entité et par mois</div>
+  <div class="table-card">
+      <div class="card-title-main">Compte de résultat — <span id="plScope">Groupe</span> <span id="plYear">2026</span></div>
       <table>
-        <thead><tr><th style="text-align:left">Entité</th><th>Année</th><th>Mois</th><th>MB</th><th>Part groupe</th></tr></thead>
-        <tbody id="tBody"></tbody>
+        <thead><tr><th style="text-align:left">Poste</th><th>Montant annuel</th></tr></thead>
+        <tbody id="plBody"></tbody>
       </table>
+      <div style="font-size:10px;color:var(--muted);margin-top:10px;font-style:italic">Réalisé jusqu'au dernier mois disponible, prévision au-delà. Lignes ACE et marketing à venir.</div>
     </div>
   </div>
 </div>
@@ -165,7 +166,7 @@ const COLORS = {
 };
 
 let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cDonut, cLine;
-let rawDataPrev=[], rawDataObj=[];
+let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[];
   
 function saveToken(tok) {
   const ts = Date.now().toString();
@@ -231,9 +232,11 @@ if(!EMAILS_AUTORISES.includes(u.email)) throw new Error('Accès non autorisé.')
 const Q_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_Realisee_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_OBJ  = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_objectifs_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
+const Q_MS_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ms_total) AS ms FROM `db-finances-496809.Masse_salariale.MS_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
+const Q_MS_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ms_prevision) AS ms FROM `db-finances-496809.Masse_salariale.MS_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 
-[rawData, rawDataPrev, rawDataObj] = await Promise.all([
-  bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ)
+[rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev] = await Promise.all([
+  bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV)
 ]);
 
 saveToken(tok);
@@ -376,8 +379,63 @@ sort:(a,b)=>{
   const sorted=[...d].sort((a,b)=>a.annee!==b.annee?b.annee-a.annee:Number(b.mois_num)-Number(a.mois_num));
   const html=sorted.filter(r=>Number(r.mb)).map(r=>{const pc=r.entite==='Orixa Media'?'p-o':r.entite==='Feedcast'?'p-f':'p-v';return '<tr><td><span class="pill '+pc+'">'+r.entite+'</span></td><td>'+r.annee+'</td><td>'+MOIS[Number(r.mois_num)]+'</td><td>'+fmtRaw(r.mb)+'</td><td>'+(tot>0?(Number(r.mb)/tot*100).toFixed(1):0)+'%</td></tr>';}).join('');
   document.getElementById('tBody').innerHTML=html||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">Aucune donnée</td></tr>';
+  renderPL();
+}
+function sumAnnuel(data, annee, ents) {
+  return Array.from({length:12},(_,i)=>{
+    const m=String(i+1);
+    return data.filter(x=>
+      String(x.annee)===annee &&
+      String(x.mois_num)===m &&
+      (ents.size===0||ents.has(x.entite))
+    ).reduce((s,x)=>s+Number(x.mb||x.ms||0),0);
+  }).reduce((s,v)=>s+v,0);
 }
 
+function annualRealPrev(real, prev, annee, ents) {
+  return Array.from({length:12},(_,i)=>{
+    const m=String(i+1);
+    const r=real.filter(x=>
+      String(x.annee)===annee && String(x.mois_num)===m &&
+      (ents.size===0||ents.has(x.entite))
+    ).reduce((s,x)=>s+Number(x.mb||x.ms||0),0);
+    if(r && r>0) return r;
+    return prev.filter(x=>
+      String(x.annee)===annee && String(x.mois_num)===m &&
+      (ents.size===0||ents.has(x.entite))
+    ).reduce((s,x)=>s+Number(x.mb||x.ms||0),0);
+  }).reduce((s,v)=>s+v,0);
+}
+
+function renderPL() {
+  const entsMB = fEnt;
+  const entsMS = fEnt;
+  const mb = annualRealPrev(rawData, rawDataPrev, fAnnee, entsMB);
+  const ms = annualRealPrev(rawMsReal, rawMsPrev, fAnnee, entsMS);
+  const aceStructure = null;
+  const aceHolding   = null;
+  const marketing    = null;
+  const sr = ms + (aceStructure||0) + (aceHolding||0) + (marketing||0);
+  const ebitda = mb - sr;
+  const scope = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
+  document.getElementById('plScope').textContent = scope;
+  document.getElementById('plYear').textContent = fAnnee;
+  const cell = v => v===null ? '<span style="color:var(--muted)">—</span>' : fmtRaw(v);
+  const rows = [
+    {label:'Marge brute',      val:mb,     strong:true},
+    {label:'Seuil de rentabilité (SR)', val:sr, muted:true},
+    {label:'Masse salariale',  val:ms},
+    {label:'ACE structure',    val:aceStructure},
+    {label:'ACE holding',      val:aceHolding},
+    {label:'Dépenses marketing',val:marketing},
+    {label:'EBITDA',           val:ebitda, strong:true, top:true},
+  ];
+  document.getElementById('plBody').innerHTML = rows.map(r=>{
+    const style = (r.strong?'font-weight:600;':'') + (r.muted?'color:var(--muted);':'') + (r.top?'border-top:2px solid var(--border);':'');
+    const valColor = (r.label==='EBITDA' && r.val<0) ? 'color:var(--red)' : (r.label==='EBITDA' ? 'color:var(--green)' : '');
+    return '<tr style="'+style+'"><td style="'+style+'">'+r.label+'</td><td style="'+valColor+';'+style+'">'+cell(r.val)+'</td></tr>';
+  }).join('');
+}
 (function(){
   const params=new URLSearchParams(window.location.search);
   if(params.get('error')==='unauthorized'){
