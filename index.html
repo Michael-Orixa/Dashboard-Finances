@@ -144,10 +144,12 @@
     </div>
   <div class="table-card">
       <div class="card-title-main">Compte de résultat — <span id="plScope">Groupe</span> <span id="plYear">2026</span></div>
-      <table>
-        <thead><tr><th style="text-align:left">Poste</th><th>Montant annuel</th></tr></thead>
+ <div style="overflow-x:auto">
+      <table style="min-width:900px">
+        <thead><tr id="plHead"></tr></thead>
         <tbody id="plBody"></tbody>
       </table>
+      </div>
       <div style="font-size:10px;color:var(--muted);margin-top:10px;font-style:italic">Réalisé jusqu'au dernier mois disponible, prévision au-delà. Lignes ACE et marketing à venir.</div>
     </div>
   </div>
@@ -390,48 +392,64 @@ function sumAnnuel(data, annee, ents) {
   }).reduce((s,v)=>s+v,0);
 }
 
-function annualRealPrev(real, prev, annee, ents) {
+function serieRealPrev(real, prev, annee, ents) {
+  const somme = (arr,m) => arr.filter(x=>
+    String(x.annee)===annee && String(x.mois_num)===m &&
+    (ents.size===0||ents.has(x.entite))
+  ).reduce((s,x)=>s+Number(x.mb!==undefined?x.mb:(x.ms!==undefined?x.ms:0)),0);
+
   return Array.from({length:12},(_,i)=>{
     const m=String(i+1);
-    const r=real.filter(x=>
-      String(x.annee)===annee && String(x.mois_num)===m &&
-      (ents.size===0||ents.has(x.entite))
-    ).reduce((s,x)=>s+Number(x.mb||x.ms||0),0);
-    if(r && r>0) return r;
-    return prev.filter(x=>
-      String(x.annee)===annee && String(x.mois_num)===m &&
-      (ents.size===0||ents.has(x.entite))
-    ).reduce((s,x)=>s+Number(x.mb||x.ms||0),0);
-  }).reduce((s,v)=>s+v,0);
+    const r=somme(real,m);
+    return r!==0 ? r : somme(prev,m);
+  });
 }
 
 function renderPL() {
-  const entsMB = fEnt;
-  const entsMS = fEnt;
-  const mb = annualRealPrev(rawData, rawDataPrev, fAnnee, entsMB);
-  const ms = annualRealPrev(rawMsReal, rawMsPrev, fAnnee, entsMS);
-  const aceStructure = null;
-  const aceHolding   = null;
-  const marketing    = null;
-  const sr = ms + (aceStructure||0) + (aceHolding||0) + (marketing||0);
-  const ebitda = mb - sr;
+  const ents = fEnt;
+  const nul  = Array(12).fill(null);
+
+  const mbM  = serieRealPrev(rawData,   rawDataPrev, fAnnee, ents);
+  const msM  = serieRealPrev(rawMsReal, rawMsPrev,   fAnnee, ents);
+  const aceStructure = nul, aceHolding = nul, marketing = nul;
+
+  const srM     = msM.map((v,i)=> v + (aceStructure[i]||0) + (aceHolding[i]||0) + (marketing[i]||0));
+  const ebitdaM = mbM.map((v,i)=> v - srM[i]);
+
   const scope = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
   document.getElementById('plScope').textContent = scope;
-  document.getElementById('plYear').textContent = fAnnee;
-  const cell = v => v===null ? '<span style="color:var(--muted)">—</span>' : fmtRaw(v);
+  document.getElementById('plYear').textContent  = fAnnee;
+
+  const MOIS_L = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  document.getElementById('plHead').innerHTML =
+    '<th style="text-align:left">Poste</th>' +
+    MOIS_L.map(m=>'<th>'+m+'</th>').join('') +
+    '<th style="border-left:1px solid var(--border)">Total</th>';
+
+  const cell  = v => v===null ? '<span style="color:var(--muted)">—</span>' : fmtRaw(v);
+  const total = a => a.every(v=>v===null) ? null : a.reduce((s,v)=>s+(v||0),0);
+
   const rows = [
-    {label:'Marge brute',      val:mb,     strong:true},
-    {label:'Seuil de rentabilité (SR)', val:sr, muted:true},
-    {label:'Masse salariale',  val:ms},
-    {label:'ACE structure',    val:aceStructure},
-    {label:'ACE holding',      val:aceHolding},
-    {label:'Dépenses marketing',val:marketing},
-    {label:'EBITDA',           val:ebitda, strong:true, top:true},
+    {label:'Marge brute',               serie:mbM,          strong:true},
+    {label:'Seuil de rentabilité (SR)', serie:srM,          muted:true},
+    {label:'Masse salariale',           serie:msM},
+    {label:'ACE structure',             serie:aceStructure},
+    {label:'ACE holding',               serie:aceHolding},
+    {label:'Dépenses marketing',        serie:marketing},
+    {label:'EBITDA',                    serie:ebitdaM,      strong:true, top:true},
   ];
+
   document.getElementById('plBody').innerHTML = rows.map(r=>{
-    const style = (r.strong?'font-weight:600;':'') + (r.muted?'color:var(--muted);':'') + (r.top?'border-top:2px solid var(--border);':'');
-    const valColor = (r.label==='EBITDA' && r.val<0) ? 'color:var(--red)' : (r.label==='EBITDA' ? 'color:var(--green)' : '');
-    return '<tr style="'+style+'"><td style="'+style+'">'+r.label+'</td><td style="'+valColor+';'+style+'">'+cell(r.val)+'</td></tr>';
+    const style = (r.strong?'font-weight:600;':'') + (r.muted?'color:var(--muted);':'')
+                + (r.top?'border-top:2px solid var(--border);':'');
+    const couleur = v => (r.label==='EBITDA' && v!==null)
+      ? (v<0 ? 'color:var(--red);' : 'color:var(--green);') : '';
+    const tot = total(r.serie);
+    return '<tr style="'+style+'">'
+      + '<td style="'+style+'">'+r.label+'</td>'
+      + r.serie.map(v=>'<td style="'+couleur(v)+style+'">'+cell(v)+'</td>').join('')
+      + '<td style="border-left:1px solid var(--border);font-weight:600;'+couleur(tot)+style+'">'+cell(tot)+'</td>'
+      + '</tr>';
   }).join('');
 }
 (function(){
