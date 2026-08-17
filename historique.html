@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Historique P&L — Orixa Groupe</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#222636; --border:rgba(255,255,255,0.08); --text:#e8eaf0; --muted:#6b7280; --accent:#6366f1; --green:#10b981; --red:#ef4444; --orixa:#6366f1; --feedcast:#22d3ee; --visiperf:#f59e0b; }
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -37,7 +37,7 @@
   .table-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
   .card-title-main { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
   .pl-wrap { overflow-x:auto; }
-  .pl-table { width:100%; border-collapse:collapse; font-family:"DM Mono",monospace; font-size:12px; min-width:900px; }
+  .pl-table { width:100%; border-collapse:collapse; font-family:"DM Sans",sans-serif; font-variant-numeric:tabular-nums; font-size:12px; min-width:900px; }
   .pl-table th { background:var(--surface2); color:var(--text); font-size:13px; font-weight:600; padding:10px 16px; text-align:right; border-bottom:2px solid var(--accent); white-space:nowrap; }
   .pl-table th:first-child { text-align:left; min-width:280px; }
   .pl-table td { padding:6px 12px; text-align:right; border-bottom:1px solid rgba(255,255,255,0.03); white-space:nowrap; }
@@ -53,7 +53,7 @@
   .overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:100; }
   .spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  .spin-txt { font-size:12px; color:var(--muted); font-family:"DM Mono",monospace; }
+  .spin-txt { font-size:12px; color:var(--muted); font-family:"DM Sans",sans-serif; }
 </style>
 </head>
 <body>
@@ -260,7 +260,7 @@ function renderPL() {
     return [{label, data, borderColor:col.b, backgroundColor:col.bg, borderWidth:2, pointRadius:4, tension:0.3}];
   }
 
-  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
+  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11},callback:v=>fmtRaw(v)}}}};
 
   if(cHistMB) cHistMB.destroy();
   cHistMB=new Chart(document.getElementById('cHistMB'),{type:'line',data:{labels:anneesChron,datasets:buildDatasets('mb').map(d=>({...d,fill:entities.length===1,backgroundColor:d.backgroundColor.replace('0.7','0.15')}))},options:opts});
