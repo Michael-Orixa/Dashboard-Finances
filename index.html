@@ -168,7 +168,7 @@ const COLORS = {
 };
 
 let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cDonut, cLine;
-let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[];
+let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[];
   
 function saveToken(tok) {
   const ts = Date.now().toString();
@@ -239,10 +239,10 @@ const Q_MS_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS ann
 const Q_ACEH_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ace_holding) AS aceh FROM `db-finances-496809.ACE_holding.ACE_Holding_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_ACEH_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ace_holding) AS aceh FROM `db-finances-496809.ACE_holding.ACE_Holding_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
     
-[rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev] = await Promise.all([
-  bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV)
+[rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev] = await Promise.all([
+  bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV),
+  bqFetch(Q_ACEH_REAL), bqFetch(Q_ACEH_PREV)
 ]);
-
 saveToken(tok);
     document.getElementById('loadingOverlay').style.display='none';
     render();
@@ -398,8 +398,7 @@ function serieRealPrev(real, prev, annee, ents) {
   const somme = (arr,m) => arr.filter(x=>
     String(x.annee)===annee && String(x.mois_num)===m &&
     (ents.size===0||ents.has(x.entite))
-  ).reduce((s,x)=>s+Number(x.mb!==undefined?x.mb:(x.ms!==undefined?x.ms:0)),0);
-
+).reduce((s,x)=>s+Number(x.mb!==undefined?x.mb:(x.ms!==undefined?x.ms:(x.aceh!==undefined?x.aceh:0))),0);
   return Array.from({length:12},(_,i)=>{
     const m=String(i+1);
     const r=somme(real,m);
@@ -413,8 +412,8 @@ function renderPL() {
 
   const mbM  = serieRealPrev(rawData,   rawDataPrev, fAnnee, ents);
   const msM  = serieRealPrev(rawMsReal, rawMsPrev,   fAnnee, ents);
-  const aceStructure = nul, aceHolding = nul, marketing = nul;
-
+ const aceHolding   = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, ents);
+  const aceStructure = nul, marketing = nul;
   const srM     = msM.map((v,i)=> v + (aceStructure[i]||0) + (aceHolding[i]||0) + (marketing[i]||0));
   const ebitdaM = mbM.map((v,i)=> v - srM[i]);
 
