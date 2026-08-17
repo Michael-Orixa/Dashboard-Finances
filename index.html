@@ -48,7 +48,7 @@
   .table-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; }
   .card-title-main { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:1rem; font-weight:500; }
   table { width:100%; border-collapse:collapse; }
-  th { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); padding:6px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
+ th { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); padding:6px 10px; text-align:right; border-bottom:2px solid var(--accent); white-space:nowrap; }
   th:first-child { text-align:left; }
   td { font-size:12px; padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.03); text-align:right; font-family:"DM Sans",sans-serif; font-variant-numeric:tabular-nums; }
   td:first-child { text-align:left; font-family:"DM Sans",sans-serif; }
@@ -168,7 +168,7 @@ const COLORS = {
 };
 
 let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cDonut, cLine;
-let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[], lastRealIdx=-1;
+let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[], rawMktReal=[], rawMktPrev=[], lastRealIdx=-1;
   
 function saveToken(tok) {
   const ts = Date.now().toString();
@@ -238,10 +238,13 @@ const Q_MS_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS ann
 const Q_MS_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ms_prevision) AS ms FROM `db-finances-496809.Masse_salariale.MS_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_ACEH_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ace_holding) AS aceh FROM `db-finances-496809.ACE_holding.ACE_Holding_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_ACEH_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ace_holding) AS aceh FROM `db-finances-496809.ACE_holding.ACE_Holding_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
+const Q_MKT_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(marketing) AS mkt FROM `db-finances-496809.Depenses_marketing.Depenses_Marketing_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
+const Q_MKT_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(marketing) AS mkt FROM `db-finances-496809.Depenses_marketing.Depenses_Marketing_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
+
     
-[rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev] = await Promise.all([
+[rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev] = await Promise.all([
   bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV),
-  bqFetch(Q_ACEH_REAL), bqFetch(Q_ACEH_PREV)
+  bqFetch(Q_ACEH_REAL), bqFetch(Q_ACEH_PREV), bqFetch(Q_MKT_REAL), bqFetch(Q_MKT_PREV)
 ]);
 saveToken(tok);
     document.getElementById('loadingOverlay').style.display='none';
@@ -346,7 +349,7 @@ sort:(a,b)=>{
   renderPL();
 }
 function montant(x) {
-  return Number(x.mb!==undefined ? x.mb : (x.ms!==undefined ? x.ms : (x.aceh!==undefined ? x.aceh : 0)));
+  return Number(x.mb!==undefined ? x.mb : (x.ms!==undefined ? x.ms : (x.aceh!==undefined ? x.aceh : (x.mkt!==undefined ? x.mkt : 0))));
 }
 
 function serieMois(data, annee, ents) {
@@ -372,7 +375,8 @@ function renderPL() {
   const mbM  = serieRealPrev(rawData,   rawDataPrev, fAnnee, ents);
   const msM  = serieRealPrev(rawMsReal, rawMsPrev,   fAnnee, ents);
  const aceHolding   = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, ents);
-  const aceStructure = nul, marketing = nul;
+const marketing = serieRealPrev(rawMktReal, rawMktPrev, fAnnee, ents);
+  const aceStructure = nul;
   const srM     = msM.map((v,i)=> v + (aceStructure[i]||0) + (aceHolding[i]||0) + (marketing[i]||0));
   const ebitdaM = mbM.map((v,i)=> v - srM[i]);
 
