@@ -286,66 +286,28 @@ function setAnnee(val, btn) {
 }
 
 function render() {
-  const d=filtered(), tot=d.reduce((s,r)=>s+Number(r.mb),0);
-  const totRealPrev = Array.from({length:12},(_,i)=>{
-  const m=String(i+1);
-  const r=d.filter(x=>String(x.mois_num)===m).reduce((s,x)=>s+Number(x.mb),0);
-  if(r && r>0) return r;
-  return rawDataPrev.filter(x=>
-    String(x.annee)===fAnnee &&
-    String(x.mois_num)===m &&
-    (fEnt.size===0||fEnt.has(x.entite))
-  ).reduce((s,x)=>s+Number(x.mb),0);
-}).reduce((s,v)=>s+v,0);
-document.getElementById('k1').textContent=fmtRaw(totRealPrev);
-  ['Orixa Media','Feedcast','Visiperf'].forEach((e,i)=>{
-    const v=d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0);
-    document.getElementById('k'+(i+2)).textContent=fmtRaw(v);
+  const d = filtered();
+  const ents = ['Orixa Media','Feedcast','Visiperf'];
+
+  // Séries mensuelles — source unique, partagée avec le P&L
+  const realN     = serieMois(rawData, fAnnee, fEnt);
+  const realPrevN = serieRealPrev(rawData, rawDataPrev, fAnnee, fEnt);
+  const realN1    = serieMois(rawData, String(Number(fAnnee)-1), fEnt);
+  const objN      = serieMois(rawDataObj, fAnnee, fEnt);
+
+  document.getElementById('k1').textContent = fmtRaw(realPrevN.reduce((s,v)=>s+v,0));
+  ents.forEach((e,i)=>{
+    const v = d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0);
+    document.getElementById('k'+(i+2)).textContent = fmtRaw(v);
   });
-  const mois=[...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
-  const ents=['Orixa Media','Feedcast','Visiperf'];
-  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
-  // Courbe réalisé N (année sélectionnée)
-const realN = Array.from({length:12},(_,i)=>{
-  const m=String(i+1);
-  return d.filter(r=>String(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)||null;
-});
 
-// Courbe réalisé N-1
-const anneeN1 = String(Number(fAnnee)-1);
-const realN1 = Array.from({length:12},(_,i)=>{
-  const m=String(i+1);
-  return rawData.filter(r=>
-    String(r.annee)===anneeN1 &&
-    String(r.mois_num)===m &&
-    (fEnt.size===0||fEnt.has(r.entite))
-  ).reduce((s,r)=>s+Number(r.mb),0)||null;
-});
+  const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
+  const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
 
-// Courbe objectif N
-const objN = Array.from({length:12},(_,i)=>{
-  const m=String(i+1);
-  return rawDataObj.filter(r=>
-    String(r.annee)===fAnnee &&
-    String(r.mois_num)===m &&
-    (fEnt.size===0||fEnt.has(r.entite))
-  ).reduce((s,r)=>s+Number(r.mb),0)||null;
-});
-
-// Courbe réalisé+prévision N (réalisé si dispo, sinon prévision)
-const realPrevN = Array.from({length:12},(_,i)=>{
-  const m=String(i+1);
-  const r=realN[i];
-  if(r && r>0) return r;
-  return rawDataPrev.filter(x=>
-    String(x.annee)===fAnnee &&
-    String(x.mois_num)===m &&
-    (fEnt.size===0||fEnt.has(x.entite))
-  ).reduce((s,x)=>s+Number(x.mb),0)||null;
-});
-// Dernier mois avec data dans MB réalisée
-const lastRealIdx = realN.reduce((acc,v,i)=>(v&&v>0)?i:acc,-1);
-const fillReal = realPrevN.map((v,i)=>i<=lastRealIdx?v:null); 
+  // Un mois sans donnée ne doit pas être tracé sur les courbes
+  const pts = a => a.map(v => v!==0 ? v : null);
+  const lastRealIdx = realN.reduce((acc,v,i)=> v!==0 ? i : acc, -1);
+  const fillReal = realPrevN.map((v,i)=> i<=lastRealIdx ? v : null);
 const MOIS_LABELS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
 if(cLine) cLine.destroy();
@@ -354,9 +316,9 @@ cLine=new Chart(document.getElementById('cLine'),{
   data:{
     labels:MOIS_LABELS,
     datasets:[
-      {label:'Objectif',data:objN,borderColor:'rgba(239,68,68,0.7)',borderDash:[6,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(239,68,68,0.7)'},
-      {label:'Réalisé N-1',data:realN1,borderColor:'rgba(107,114,128,0.7)',borderDash:[3,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(107,114,128,0.7)'},
-      {label:'Réalisé + Prévision',data:realPrevN,borderColor:'#6366f1',borderWidth:2.5,pointRadius:4,tension:0.3,fill:false,pointBackgroundColor:'#6366f1'},
+      {label:'Objectif',data:pts(objN),borderColor:'rgba(239,68,68,0.7)',borderDash:[6,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(239,68,68,0.7)'},
+      {label:'Réalisé N-1',data:pts(realN1),borderColor:'rgba(107,114,128,0.7)',borderDash:[3,3],borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,pointBackgroundColor:'rgba(107,114,128,0.7)'},
+      {label:'Réalisé + Prévision',data:pts(realPrevN),borderColor:'#6366f1',borderWidth:2.5,pointRadius:4,tension:0.3,fill:false,pointBackgroundColor:'#6366f1'},
       {label:'_fill',data:fillReal,borderColor:'rgba(0,0,0,0)',backgroundColor:'rgba(99,102,241,0.12)',fill:'origin',pointRadius:0,pointHoverRadius:0,tension:0.3,borderWidth:0},
     ]
   },
@@ -383,27 +345,24 @@ sort:(a,b)=>{
  
   renderPL();
 }
-function sumAnnuel(data, annee, ents) {
+function montant(x) {
+  return Number(x.mb!==undefined ? x.mb : (x.ms!==undefined ? x.ms : (x.aceh!==undefined ? x.aceh : 0)));
+}
+
+function serieMois(data, annee, ents) {
   return Array.from({length:12},(_,i)=>{
     const m=String(i+1);
     return data.filter(x=>
-      String(x.annee)===annee &&
-      String(x.mois_num)===m &&
+      String(x.annee)===annee && String(x.mois_num)===m &&
       (ents.size===0||ents.has(x.entite))
-    ).reduce((s,x)=>s+Number(x.mb||x.ms||0),0);
-  }).reduce((s,v)=>s+v,0);
+    ).reduce((s,x)=>s+montant(x),0);
+  });
 }
 
 function serieRealPrev(real, prev, annee, ents) {
-  const somme = (arr,m) => arr.filter(x=>
-    String(x.annee)===annee && String(x.mois_num)===m &&
-    (ents.size===0||ents.has(x.entite))
-).reduce((s,x)=>s+Number(x.mb!==undefined?x.mb:(x.ms!==undefined?x.ms:(x.aceh!==undefined?x.aceh:0))),0);
-  return Array.from({length:12},(_,i)=>{
-    const m=String(i+1);
-    const r=somme(real,m);
-    return r!==0 ? r : somme(prev,m);
-  });
+  const r = serieMois(real, annee, ents);
+  const p = serieMois(prev, annee, ents);
+  return r.map((v,i)=> v!==0 ? v : p[i]);
 }
 
 function renderPL() {
