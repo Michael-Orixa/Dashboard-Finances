@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MB Mensuelle — Orixa Groupe</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#222636; --border:rgba(255,255,255,0.08); --text:#e8eaf0; --muted:#6b7280; --accent:#6366f1; --green:#10b981; --red:#ef4444; --orixa:#6366f1; --feedcast:#22d3ee; --visiperf:#f59e0b; }
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -37,7 +37,7 @@
   .kpi.k1::after { background:var(--accent); } .kpi.k2::after { background:var(--orixa); }
   .kpi.k3::after { background:var(--feedcast); } .kpi.k4::after { background:var(--visiperf); }
   .kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin-bottom:8px; }
-  .kpi-value { font-size:22px; font-weight:600; font-family:"DM Mono",monospace; }
+  .kpi-value { font-size:22px; font-weight:600; font-family:"Roboto Mono",monospace; }
   .charts-row { display:grid; grid-template-columns:3fr 2fr; gap:12px; margin-bottom:12px; min-width:0; }
   .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; min-width:0; overflow:hidden; }
   .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
@@ -50,7 +50,7 @@
   table { width:100%; border-collapse:collapse; }
   th { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); padding:6px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
   th:first-child { text-align:left; }
-  td { font-size:12px; padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.03); text-align:right; font-family:"DM Mono",monospace; }
+  td { font-size:12px; padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.03); text-align:right; font-family:"Roboto Mono",monospace; }
   td:first-child { text-align:left; font-family:"DM Sans",sans-serif; }
   tr:last-child td { border-bottom:none; }
   .pill { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
@@ -63,12 +63,12 @@
   .login-sub { font-size:13px; color:var(--muted); line-height:1.6; }
   .btn-google { display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:14px; cursor:pointer; width:100%; justify-content:center; }
   .btn-google:hover { border-color:var(--accent); }
-  .login-status { font-size:12px; color:var(--muted); font-family:"DM Mono",monospace; }
+  .login-status { font-size:12px; color:var(--muted); font-family:"Roboto Mono",monospace; }
   .login-status.error { color:var(--red); }
   .overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:100; }
   .spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  .spin-txt { font-size:12px; color:var(--muted); font-family:"DM Mono",monospace; }
+  .spin-txt { font-size:12px; color:var(--muted); font-family:"Roboto Mono",monospace; }
 </style>
 </head>
 <body>
@@ -302,7 +302,7 @@ function render() {
   });
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
-  const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}}};
+  const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'Roboto Mono',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'Roboto Mono',size:11},callback:v=>fmtRaw(v)}}}};
 
   // Un mois sans donnée ne doit pas être tracé sur les courbes
   const pts = a => a.map(v => v!==0 ? v : null);
@@ -333,8 +333,8 @@ sort:(a,b)=>{
   tooltip:{filter:item=>item.dataset.label!=='_fill'}
 },
     scales:{
-      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11}}},
-      y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Mono',size:11},callback:v=>fmtRaw(v)}}
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'Roboto Mono',size:11}}},
+      y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'Roboto Mono',size:11},callback:v=>fmtRaw(v)}}
     }
   }
 });
