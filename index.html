@@ -168,7 +168,7 @@ const COLORS = {
 };
 
 let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cDonut, cLine;
-let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[];
+let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[], lastRealIdx=-1;
   
 function saveToken(tok) {
   const ts = Date.now().toString();
@@ -306,7 +306,7 @@ function render() {
 
   // Un mois sans donnée ne doit pas être tracé sur les courbes
   const pts = a => a.map(v => v!==0 ? v : null);
-  const lastRealIdx = realN.reduce((acc,v,i)=> v!==0 ? i : acc, -1);
+  lastRealIdx = realN.reduce((acc,v,i)=> v!==0 ? i : acc, -1);
   const fillReal = realPrevN.map((v,i)=> i<=lastRealIdx ? v : null);
 const MOIS_LABELS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
@@ -381,9 +381,10 @@ function renderPL() {
   document.getElementById('plYear').textContent  = fAnnee;
 
   const MOIS_L = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+ const fondReal = 'background:rgba(99,102,241,0.07);';
   document.getElementById('plHead').innerHTML =
     '<th style="text-align:left">Poste</th>' +
-    MOIS_L.map(m=>'<th>'+m+'</th>').join('') +
+    MOIS_L.map((m,i)=>'<th style="'+(i<=lastRealIdx?fondReal:'')+'">'+m+'</th>').join('') +
     '<th style="border-left:1px solid var(--border)">Total</th>';
 
   const cell  = v => v===null ? '<span style="color:var(--muted)">—</span>' : fmtRaw(v);
@@ -407,7 +408,7 @@ function renderPL() {
     const tot = total(r.serie);
     return '<tr style="'+style+'">'
       + '<td style="'+style+'">'+r.label+'</td>'
-      + r.serie.map(v=>'<td style="'+couleur(v)+style+'">'+cell(v)+'</td>').join('')
+     + r.serie.map((v,i)=>'<td style="'+(i<=lastRealIdx?fondReal:'')+couleur(v)+style+'">'+cell(v)+'</td>').join('')
       + '<td style="border-left:1px solid var(--border);font-weight:600;'+couleur(tot)+style+'">'+cell(tot)+'</td>'
       + '</tr>';
   }).join('');
