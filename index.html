@@ -236,7 +236,9 @@ const Q_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee,
 const Q_OBJ  = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_objectifs_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_MS_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ms_total) AS ms FROM `db-finances-496809.Masse_salariale.MS_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_MS_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ms_prevision) AS ms FROM `db-finances-496809.Masse_salariale.MS_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
-
+const Q_ACEH_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ace_holding) AS aceh FROM `db-finances-496809.ACE_holding.ACE_Holding_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
+const Q_ACEH_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(ace_holding) AS aceh FROM `db-finances-496809.ACE_holding.ACE_Holding_Previsions_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
+    
 [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev] = await Promise.all([
   bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV)
 ]);
