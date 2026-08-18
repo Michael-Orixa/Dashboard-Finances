@@ -300,7 +300,6 @@ function render() {
 
   document.getElementById('k1').textContent = fmtRaw(realPrevN.reduce((s,v)=>s+v,0));
   document.getElementById('k1Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
-  document.getElementById('k1Year').textContent = fAnnee;
   const msKpi   = serieRealPrev(rawMsReal, rawMsPrev, fAnnee, fEnt);
   const acehKpi = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, fEnt);
   const mktKpi  = serieRealPrev(rawMktReal, rawMktPrev, fAnnee, fEnt);
@@ -309,7 +308,7 @@ function render() {
 
   document.getElementById('k2').textContent = fmtRaw(ebitdaKpi);
   document.getElementById('k2Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
-  document.getElementById('k2Year').textContent = fAnnee;
+
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
   const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11},callback:v=>fmtRaw(v)}}}};
