@@ -125,7 +125,7 @@
     <div class="kpi-grid">
         <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span></div><div class="kpi-value" id="k1">—</div><div class="kpi-sub" id="k1Sub"></div></div>
         <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span></div><div class="kpi-value" id="k2">—</div><div class="kpi-sub" id="k2Sub"></div></div>
-        <div class="kpi k3"><div class="kpi-label">—</div><div class="kpi-value" id="k3">—</div></div>
+                        <div class="kpi k3"><div class="kpi-label">Seuil de rentabilité — <span id="k3Scope">Groupe</span></div><div class="kpi-value" id="k3">—</div></div>
         <div class="kpi k4"><div class="kpi-label">—</div><div class="kpi-value" id="k4">—</div></div>
     </div>
     <div class="charts-row" style="margin-bottom:12px">
@@ -326,6 +326,8 @@ function render() {
   };
   document.getElementById('k1Sub').innerHTML = ecart(totMB,totN1,'vs N-1') + ecart(totMB,totObj,'vs obj.');
   document.getElementById('k2Sub').innerHTML = ecart(ebitdaKpi, som(ebitdaN1), 'vs N-1') + ecart(ebitdaKpi, som(ebitdaObj), 'vs obj.');
+  document.getElementById('k3').textContent = fmtRaw(som(msKpi) + som(acehKpi) + som(mktKpi));
+  document.getElementById('k3Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
   const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11},callback:v=>fmtRaw(v)}}}};
