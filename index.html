@@ -124,7 +124,7 @@
   <div class="page-body">
     <div class="kpi-grid">
         <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span></div><div class="kpi-value" id="k1">—</div><div class="kpi-sub" id="k1Sub"></div></div>
-        <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span> </div><div class="kpi-value" id="k2">—</div></div>
+        <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span></div><div class="kpi-value" id="k2">—</div><div class="kpi-sub" id="k2Sub"></div></div>
         <div class="kpi k3"><div class="kpi-label">—</div><div class="kpi-value" id="k3">—</div></div>
         <div class="kpi k4"><div class="kpi-label">—</div><div class="kpi-value" id="k4">—</div></div>
     </div>
@@ -320,12 +320,12 @@ function render() {
   const totMB = som(realPrevN), totN1 = som(realN1), totObj = som(objN);
   const ecart = (val, ref, lib) => {
     if(!ref) return '<span style="color:var(--muted)">'+lib+' n/a</span>';
-    const p = (val-ref)/ref*100;
+    const p = (val-ref)/Math.abs(ref)*100;
     const c = p>=0 ? 'var(--green)' : 'var(--red)';
     return '<span style="color:'+c+'">'+(p>=0?'+':'')+p.toFixed(1)+'% '+lib+'</span>';
   };
   document.getElementById('k1Sub').innerHTML = ecart(totMB,totN1,'vs N-1') + ecart(totMB,totObj,'vs obj.');
-
+  document.getElementById('k2Sub').innerHTML = ecart(ebitdaKpi, som(ebitdaN1), 'vs N-1') + ecart(ebitdaKpi, som(ebitdaObj), 'vs obj.');
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
   const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11},callback:v=>fmtRaw(v)}}}};
