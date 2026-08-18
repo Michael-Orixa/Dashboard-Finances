@@ -38,6 +38,7 @@
   .kpi.k3::after { background:var(--feedcast); } .kpi.k4::after { background:var(--visiperf); }
   .kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin-bottom:8px; }
   .kpi-value { font-size:22px; font-weight:600; font-family:"DM Sans",sans-serif; font-variant-numeric:tabular-nums; }
+  .kpi-sub { font-size:11px; margin-top:6px; display:flex; gap:12px; font-variant-numeric:tabular-nums; }
   .charts-row { display:grid; grid-template-columns:3fr 2fr; gap:12px; margin-bottom:12px; min-width:0; }
   .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; min-width:0; overflow:hidden; }
   .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
@@ -63,12 +64,12 @@
   .login-sub { font-size:13px; color:var(--muted); line-height:1.6; }
   .btn-google { display:flex; align-items:center; gap:10px; padding:12px 20px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:14px; cursor:pointer; width:100%; justify-content:center; }
   .btn-google:hover { border-color:var(--accent); }
-  .login-status { font-size:12px; color:var(--muted); font-family:"DM Sans",monospace; }
+  .login-status { font-size:12px; color:var(--muted); font-family:"DM Sans",sans-serif; }
   .login-status.error { color:var(--red); }
   .overlay { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:100; }
   .spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  .spin-txt { font-size:12px; color:var(--muted); font-family:"DM Sans",monospace; }
+  .spin-txt { font-size:12px; color:var(--muted); font-family:"DM Sans",sans-serif; }
 </style>
 </head>
 <body>
@@ -122,7 +123,7 @@
 </div>
   <div class="page-body">
     <div class="kpi-grid">
-              <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span></div><div class="kpi-value" id="k1">—</div></div>
+        <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span></div><div class="kpi-value" id="k1">—</div><div class="kpi-sub" id="k1Sub"></div></div>
         <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span> </div><div class="kpi-value" id="k2">—</div></div>
         <div class="kpi k3"><div class="kpi-label">—</div><div class="kpi-value" id="k3">—</div></div>
         <div class="kpi k4"><div class="kpi-label">—</div><div class="kpi-value" id="k4">—</div></div>
