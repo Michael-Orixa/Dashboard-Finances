@@ -309,6 +309,15 @@ function render() {
 
   document.getElementById('k2').textContent = fmtRaw(ebitdaKpi);
   document.getElementById('k2Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
+  
+  const totMB = som(realPrevN), totN1 = som(realN1), totObj = som(objN);
+  const ecart = (val, ref, lib) => {
+    if(!ref) return '<span style="color:var(--muted)">'+lib+' n/a</span>';
+    const p = (val-ref)/ref*100;
+    const c = p>=0 ? 'var(--green)' : 'var(--red)';
+    return '<span style="color:'+c+'">'+(p>=0?'+':'')+p.toFixed(1)+'% '+lib+'</span>';
+  };
+  document.getElementById('k1Sub').innerHTML = ecart(totMB,totN1,'vs N-1') + ecart(totMB,totObj,'vs obj.');
 
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
