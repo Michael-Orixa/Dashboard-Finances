@@ -122,10 +122,10 @@
 </div>
   <div class="page-body">
     <div class="kpi-grid">
-      <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span> <span id="k1Year">2026</span></div><div class="kpi-value" id="k1">—</div></div>
-      <div class="kpi k2"><div class="kpi-label">Orixa Media</div><div class="kpi-value" id="k2">—</div></div>
-      <div class="kpi k3"><div class="kpi-label">Feedcast</div><div class="kpi-value" id="k3">—</div></div>
-      <div class="kpi k4"><div class="kpi-label">Visiperf</div><div class="kpi-value" id="k4">—</div></div>
+              <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span> <span id="k1Year">2026</span></div><div class="kpi-value" id="k1">—</div></div>
+        <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span> <span id="k2Year">2026</span></div><div class="kpi-value" id="k2">—</div></div>
+        <div class="kpi k3"><div class="kpi-label">—</div><div class="kpi-value" id="k3">—</div></div>
+        <div class="kpi k4"><div class="kpi-label">—</div><div class="kpi-value" id="k4">—</div></div>
     </div>
     <div class="charts-row" style="margin-bottom:12px">
       <div class="card">
@@ -301,10 +301,15 @@ function render() {
   document.getElementById('k1').textContent = fmtRaw(realPrevN.reduce((s,v)=>s+v,0));
   document.getElementById('k1Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
   document.getElementById('k1Year').textContent = fAnnee;
-  ents.forEach((e,i)=>{
-    const v = d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0);
-    document.getElementById('k'+(i+2)).textContent = fmtRaw(v);
-  });
+  const msKpi   = serieRealPrev(rawMsReal, rawMsPrev, fAnnee, fEnt);
+  const acehKpi = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, fEnt);
+  const mktKpi  = serieRealPrev(rawMktReal, rawMktPrev, fAnnee, fEnt);
+  const som = a => a.reduce((s,v)=>s+v,0);
+  const ebitdaKpi = som(realPrevN) - som(msKpi) - som(acehKpi) - som(mktKpi);
+
+  document.getElementById('k2').textContent = fmtRaw(ebitdaKpi);
+  document.getElementById('k2Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
+  document.getElementById('k2Year').textContent = fAnnee;
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
   const base = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{family:'DM Sans',size:11},callback:v=>fmtRaw(v)}}}};
