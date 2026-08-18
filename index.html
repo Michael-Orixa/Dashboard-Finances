@@ -122,7 +122,7 @@
 </div>
   <div class="page-body">
     <div class="kpi-grid">
-      <div class="kpi k1"><div class="kpi-label">Marge brute</div><div class="kpi-value" id="k1">—</div></div>
+      <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span> <span id="k1Year">2026</span></div><div class="kpi-value" id="k1">—</div></div>
       <div class="kpi k2"><div class="kpi-label">Orixa Media</div><div class="kpi-value" id="k2">—</div></div>
       <div class="kpi k3"><div class="kpi-label">Feedcast</div><div class="kpi-value" id="k3">—</div></div>
       <div class="kpi k4"><div class="kpi-label">Visiperf</div><div class="kpi-value" id="k4">—</div></div>
@@ -299,6 +299,8 @@ function render() {
   const objN      = serieMois(rawDataObj, fAnnee, fEnt);
 
   document.getElementById('k1').textContent = fmtRaw(realPrevN.reduce((s,v)=>s+v,0));
+  document.getElementById('k1Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
+  document.getElementById('k1Year').textContent = fAnnee;
   ents.forEach((e,i)=>{
     const v = d.filter(r=>r.entite===e).reduce((s,r)=>s+Number(r.mb),0);
     document.getElementById('k'+(i+2)).textContent = fmtRaw(v);
