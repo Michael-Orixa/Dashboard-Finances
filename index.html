@@ -429,8 +429,8 @@ function renderPL() {
 
   const mbM  = serieRealPrev(rawData,   rawDataPrev, fAnnee, ents);
   const msM  = serieRealPrev(rawMsReal, rawMsPrev,   fAnnee, ents);
-  const msFp  = serieMois(rawMsFp, fAnnee, ents);
-  const msStc = serieMois(rawMsStc, fAnnee, ents);
+  const msFp  = serieMois(rawMsFp, fAnnee, ents).map((v,i)=> i<=lastRealIdx ? v : null);
+  const msStc = serieMois(rawMsStc, fAnnee, ents).map((v,i)=> i<=lastRealIdx ? v : null);
   const aceHolding   = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, ents);
   const marketing = serieRealPrev(rawMktReal, rawMktPrev, fAnnee, ents);
   const aceStructure = serieRealPrev(rawAcesReal, rawAcesPrev, fAnnee, ents);
