@@ -151,7 +151,7 @@
         <tbody id="plBody"></tbody>
       </table>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:10px;font-style:italic">Réalisé jusqu'au dernier mois disponible, prévision au-delà. Lignes ACE structure et dépenses marketing à venir.</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:10px;font-style:italic">Réalisé jusqu'au dernier mois disponible, prévision au-delà.</div>
     </div>
   </div>
 </div>
@@ -305,6 +305,7 @@ function render() {
   document.getElementById('k1Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
   const msKpi   = serieRealPrev(rawMsReal, rawMsPrev, fAnnee, fEnt);
   const acehKpi = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, fEnt);
+  const mktKpi  = serieRealPrev(rawMktReal, rawMktPrev, fAnnee, fEnt);
   const acesKpi = serieRealPrev(rawAcesReal, rawAcesPrev, fAnnee, fEnt);
   const som = a => a.reduce((s,v)=>s+v,0);
   const ebitdaKpi = som(realPrevN) - som(msKpi) - som(acehKpi) - som(mktKpi) - som(acesKpi);
