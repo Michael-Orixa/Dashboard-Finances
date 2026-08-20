@@ -205,6 +205,7 @@ function fmtRaw(v) {
 }
 function parseBQ(d) {
   if(d.error) throw new Error(d.error.message);
+  if(d.jobComplete === false) throw new Error('Requête BigQuery non terminée dans le délai imparti.');
   if(!d.rows) return [];
   const fields=d.schema.fields.map(f=>f.name);
   return d.rows.map(row=>{const o={};row.f.forEach((c,i)=>o[fields[i]]=c.v);return o;});
@@ -229,7 +230,7 @@ if(!EMAILS_AUTORISES.includes(u.email)) throw new Error('Accès non autorisé.')
     
   const bqFetch = (sql) => fetch('https://bigquery.googleapis.com/bigquery/v2/projects/db-finances-496809/queries',{
   method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
-  body:JSON.stringify({query:sql,useLegacySql:false,timeoutMs:20000})
+  body:JSON.stringify({query:sql,useLegacySql:false,timeoutMs:60000})
 }).then(r=>r.json()).then(parseBQ);
 
 const Q_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_Realisee_Groupe` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
