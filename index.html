@@ -250,18 +250,17 @@ const TP = 'db-finances-496809.Masse_salariale.MS_Previsions_Groupe';
 const ENT = 'entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, ';
 const GRP = ' GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 
-const Q_MS_FIXE      = 'SELECT '+ENT+'SUM(ms_salaire) AS v FROM `'+T+'`'+GRP;
-const Q_MS_PRIME     = 'SELECT '+ENT+'SUM(ms_prime) AS v FROM `'+T+'`'+GRP;
-const Q_MS_PRIMEPROV = 'SELECT '+ENT+'SUM(ms_prime_provision) AS v FROM `'+T+'`'+GRP;
-const Q_MS_STC       = 'SELECT '+ENT+'SUM(ms_stc) AS v FROM `'+T+'`'+GRP;
-const Q_MSP_FIXE     = 'SELECT '+ENT+'SUM(ms_prevision_fixe) AS v FROM `'+TP+'`'+GRP;
-const Q_MSP_PRIME    = 'SELECT '+ENT+'SUM(ms_prevision_prime) AS v FROM `'+TP+'`'+GRP;
-const Q_MSP_STC      = 'SELECT '+ENT+'SUM(ms_prevision_stc) AS v FROM `'+TP+'`'+GRP;
+const Q_MS_FIXE   = 'SELECT '+ENT+'SUM(ms_salaire) AS v FROM `'+T+'`'+GRP;
+const Q_MS_PRIME  = 'SELECT '+ENT+'SUM(ms_prime) AS v FROM `'+T+'`'+GRP;
+const Q_MS_STC    = 'SELECT '+ENT+'SUM(ms_stc) AS v FROM `'+T+'`'+GRP;
+const Q_MSP_FIXE  = 'SELECT '+ENT+'SUM(ms_prevision_fixe) AS v FROM `'+TP+'`'+GRP;
+const Q_MSP_PRIME = 'SELECT '+ENT+'SUM(ms_prevision_prime) AS v FROM `'+TP+'`'+GRP;
+const Q_MSP_STC   = 'SELECT '+ENT+'SUM(ms_prevision_stc) AS v FROM `'+TP+'`'+GRP;
     
-       [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev, rawEbObj, rawAcesReal, rawAcesPrev, rawMsFixe, rawMsPrime, rawMsPrimeProv, rawMsStc, rawMspFixe, rawMspPrime, rawMspStc] = await Promise.all([
+         [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev, rawEbObj, rawAcesReal, rawAcesPrev, rawMsFixe, rawMsPrime, rawMsStc, rawMspFixe, rawMspPrime, rawMspStc] = await Promise.all([
       bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV),
       bqFetch(Q_ACEH_REAL), bqFetch(Q_ACEH_PREV), bqFetch(Q_MKT_REAL), bqFetch(Q_MKT_PREV), bqFetch(Q_EB_OBJ), bqFetch(Q_ACES_REAL), bqFetch(Q_ACES_PREV),
-      bqFetch(Q_MS_FIXE), bqFetch(Q_MS_PRIME), bqFetch(Q_MS_PRIMEPROV), bqFetch(Q_MS_STC),
+      bqFetch(Q_MS_FIXE), bqFetch(Q_MS_PRIME), bqFetch(Q_MS_STC),
       bqFetch(Q_MSP_FIXE), bqFetch(Q_MSP_PRIME), bqFetch(Q_MSP_STC)
     ]);
 saveToken(tok);
@@ -442,13 +441,9 @@ function renderPL() {
 
   const mbM  = serieRealPrev(rawData,   rawDataPrev, fAnnee, ents);
   const msM  = serieRealPrev(rawMsReal, rawMsPrev,   fAnnee, ents);
-  const fixe       = serieRealPrev(rawMsFixe, rawMspFixe, fAnnee, ents);
-  const primeVers  = serieMois(rawMsPrime, fAnnee, ents).map((v,i)=> i<=lastRealIdx ? v : null);
-  const stcVers    = serieMois(rawMsStc,   fAnnee, ents).map((v,i)=> i<=lastRealIdx ? v : null);
-  const primeProvR = serieMois(rawMsPrimeProv, fAnnee, ents);
-  const primeProvP = serieMois(rawMspPrime,    fAnnee, ents);
-  const primeProv  = primeProvR.map((v,i)=> i<=lastRealIdx ? v : (primeProvP[i]||0));
-  const stcPrev    = serieMois(rawMspStc, fAnnee, ents).map((v,i)=> i<=lastRealIdx ? null : v);
+  const fixe  = serieRealPrev(rawMsFixe,  rawMspFixe,  fAnnee, ents);
+  const prime = serieRealPrev(rawMsPrime, rawMspPrime, fAnnee, ents);
+  const stc   = serieRealPrev(rawMsStc,   rawMspStc,   fAnnee, ents);
   const aceHolding   = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, ents);
   const marketing = serieRealPrev(rawMktReal, rawMktPrev, fAnnee, ents);
   const aceStructure = serieRealPrev(rawAcesReal, rawAcesPrev, fAnnee, ents);
@@ -473,11 +468,9 @@ function renderPL() {
     {label:'Marge brute',               serie:mbM,          strong:true},
     {label:'Seuil de rentabilité (SR)', serie:srM,          muted:true},
     {label:'Masse salariale',           serie:msM},
-    {label:'   Fixe',                   serie:fixe,      muted:true},
-    {label:'   Primes versées',         serie:primeVers, muted:true},
-    {label:'   Primes prévisionnelles', serie:primeProv, muted:true},
-    {label:'   STC versés',             serie:stcVers,   muted:true},
-    {label:'   STC prévisionnels',      serie:stcPrev,   muted:true},
+    {label:'   Fixe',   serie:fixe,  muted:true},
+    {label:'   Primes', serie:prime, muted:true},
+    {label:'   STC',    serie:stc,   muted:true},
     {label:'ACE structure',             serie:aceStructure},
     {label:'ACE holding',               serie:aceHolding},
     {label:'Dépenses marketing',        serie:marketing},
