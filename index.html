@@ -250,12 +250,12 @@ const TP = 'db-finances-496809.Masse_salariale.MS_Previsions_Groupe';
 const ENT = 'entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, ';
 const GRP = ' GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 
-const Q_MS_FIXE   = 'SELECT '+ENT+'SUM(ms_salaire) AS v FROM `'+T+'`'+GRP;
-const Q_MS_PRIME  = 'SELECT '+ENT+'SUM(ms_prime) AS v FROM `'+T+'`'+GRP;
-const Q_MS_STC    = 'SELECT '+ENT+'SUM(ms_stc) AS v FROM `'+T+'`'+GRP;
-const Q_MSP_FIXE  = 'SELECT '+ENT+'SUM(ms_prevision_fixe) AS v FROM `'+TP+'`'+GRP;
-const Q_MSP_PRIME = 'SELECT '+ENT+'SUM(ms_prevision_prime) AS v FROM `'+TP+'`'+GRP;
-const Q_MSP_STC   = 'SELECT '+ENT+'SUM(ms_prevision_stc) AS v FROM `'+TP+'`'+GRP;
+const Q_MS_FIXE   = 'SELECT '+ENT+'SUM(ms_salaire) AS ms FROM `'+T+'`'+GRP;
+const Q_MS_PRIME  = 'SELECT '+ENT+'SUM(ms_prime) AS ms FROM `'+T+'`'+GRP;
+const Q_MS_STC    = 'SELECT '+ENT+'SUM(ms_stc) AS ms FROM `'+T+'`'+GRP;
+const Q_MSP_FIXE  = 'SELECT '+ENT+'SUM(ms_prevision_fixe) AS ms FROM `'+TP+'`'+GRP;
+const Q_MSP_PRIME = 'SELECT '+ENT+'SUM(ms_prevision_prime) AS ms FROM `'+TP+'`'+GRP;
+const Q_MSP_STC   = 'SELECT '+ENT+'SUM(ms_prevision_stc) AS ms FROM `'+TP+'`'+GRP;
     
          [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev, rawEbObj, rawAcesReal, rawAcesPrev, rawMsFixe, rawMsPrime, rawMsStc, rawMspFixe, rawMspPrime, rawMspStc] = await Promise.all([
       bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV),
@@ -415,10 +415,10 @@ sort:(a,b)=>{
  
   renderPL();
 }
-function montant(x) {
-  return Number(x.mb!==undefined ? x.mb : (x.ms!==undefined ? x.ms : (x.aceh!==undefined ? x.aceh : (x.mkt!==undefined ? x.mkt : (x.ebobj!==undefined ? x.ebobj : (x.aces!==undefined ? x.aces : (x.msfp!==undefined ? x.msfp : (x.msstc!==undefined ? x.msstc : 0))))))));
+ function montant(x) {
+  for (const k in x) { if (k!=='entite' && k!=='annee' && k!=='mois_num') return Number(x[k]); }
+  return 0;
 }
-
 function serieMois(data, annee, ents) {
   return Array.from({length:12},(_,i)=>{
     const m=String(i+1);
