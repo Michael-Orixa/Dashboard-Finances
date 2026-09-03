@@ -154,13 +154,13 @@
         </div>
     </div>
    <div class="card" style="margin-bottom:12px">
-<div class="card-title">Marge brute par trimestre — effectif vs objectif</div>
-<div class="legend" style="margin:-4px 0 14px">
+<div class="card-title">Marge brute par trimestre — réalisé & prév. vs objectif</div>
+<div class="tri-grid" id="triGrid"></div>
+<div class="legend" style="margin:14px 0 -4px">
 <span class="leg-item"><span class="leg-dot" style="background:#6366f1"></span>Réalisé</span>
-<span class="leg-item"><span class="leg-dot" style="background:rgba(99,102,241,0.45)"></span>Prévisionnel</span>
+<span class="leg-item"><span class="leg-dot" style="background:#a5b4fc"></span>Prévisionnel</span>
 <span class="leg-item"><span style="width:14px;border-top:2px dashed rgba(239,68,68,0.8)"></span>Objectif</span>
 </div>
-<div class="tri-grid" id="triGrid"></div>
 </div>
   <div class="table-card">
       <div class="card-title-main">Compte de résultat — <span id="plScope">Groupe</span> <span id="plYear">2026</span></div>
@@ -352,7 +352,7 @@ function renderTrimestres(eff, obj, lastIdx) {
     idx.forEach(i => {
       const v = Number(eff[i])||0, ov = Number(obj[i])||0;
       const h = Math.round(v/maxv*H), ho = Math.round(ov/maxv*H);
-      const c = i <= lastIdx ? '#6366f1' : 'rgba(99,102,241,0.45)';
+      const c = i <= lastIdx ? '#6366f1' : '#a5b4fc';
       bars += '<div class="tri-m"><div class="tri-bz">'
         + (v>0 ? '<div class="tri-bar" style="height:'+h+'px;background:'+c+'"></div>' : '')
         + (ov>0 ? '<div class="tri-obj" style="bottom:'+ho+'px"></div>' : '')
