@@ -58,6 +58,20 @@
   .p-o { background:rgba(99,102,241,0.15); color:#a5b4fc; }
   .p-f { background:rgba(34,211,238,0.15); color:#67e8f9; }
   .p-v { background:rgba(245,158,11,0.15); color:#fcd34d; }
+  .tri-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.tri-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:0.9rem 1rem; min-width:0; }
+.tri-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:6px; }
+.tri-t { font-size:13px; font-weight:600; }
+.tri-badge { font-size:10px; padding:2px 8px; border-radius:4px; white-space:nowrap; }
+.tri-val { font-size:19px; font-weight:600; font-variant-numeric:tabular-nums; }
+.tri-sub { font-size:11px; color:var(--muted); margin-top:3px; font-variant-numeric:tabular-nums; }
+.tri-bars { display:flex; gap:6px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border); }
+.tri-m { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; min-width:0; }
+.tri-bz { position:relative; width:100%; height:64px; display:flex; align-items:flex-end; justify-content:center; }
+.tri-bar { width:22px; border-radius:3px 3px 0 0; }
+.tri-obj { position:absolute; left:15%; right:15%; border-top:2px dashed rgba(239,68,68,0.8); }
+.tri-ml { font-size:10px; color:var(--muted); }
+@media (max-width:1250px) { .tri-grid { grid-template-columns:repeat(2,1fr); } }
   #loginScreen { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); z-index:200; }
   .login-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; gap:1.5rem; max-width:380px; width:90%; }
   .login-title { font-size:22px; font-weight:600; }
@@ -139,10 +153,15 @@
           <div class="chart-wrap"><canvas id="cEbitda"></canvas></div>
         </div>
     </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-title">MB par mois — comparaison entités</div>
-      <div class="chart-wrap"><canvas id="cBar"></canvas></div>
-    </div>
+   <div class="card" style="margin-bottom:12px">
+<div class="card-title">Marge brute par trimestre — effectif vs objectif</div>
+<div class="legend" style="margin:-4px 0 14px">
+<span class="leg-item"><span class="leg-dot" style="background:#6366f1"></span>Réalisé</span>
+<span class="leg-item"><span class="leg-dot" style="background:rgba(99,102,241,0.45)"></span>Prévisionnel</span>
+<span class="leg-item"><span style="width:14px;border-top:2px dashed rgba(239,68,68,0.8)"></span>Objectif</span>
+</div>
+<div class="tri-grid" id="triGrid"></div>
+</div>
   <div class="table-card">
       <div class="card-title-main">Compte de résultat — <span id="plScope">Groupe</span> <span id="plYear">2026</span></div>
  <div style="overflow-x:auto">
@@ -304,7 +323,51 @@ function setAnnee(val, btn) {
   btn.classList.add('active');
   render();
 }
-
+function renderTrimestres(eff, obj, lastIdx) {
+  const grid = document.getElementById('triGrid');
+  if(!grid) return;
+  const M = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  const H = 64;
+  let maxv = 0;
+  for(let i=0;i<12;i++) maxv = Math.max(maxv, Number(eff[i])||0, Number(obj[i])||0);
+  if(maxv <= 0) maxv = 1;
+  const ETATS = {
+    'Clôturé':'background:rgba(16,185,129,0.15);color:#6ee7b7',
+    'En cours':'background:rgba(245,158,11,0.15);color:#fcd34d',
+    'Prévisionnel':'background:rgba(99,102,241,0.15);color:#a5b4fc'
+  };
+  let html = '';
+  for(let t=0;t<4;t++) {
+    const idx = [t*3, t*3+1, t*3+2];
+    const e = idx.reduce((s,i)=>s+(Number(eff[i])||0), 0);
+    const o = idx.reduce((s,i)=>s+(Number(obj[i])||0), 0);
+    const nbReal = idx.filter(i => i <= lastIdx).length;
+    const etat = nbReal===3 ? 'Clôturé' : (nbReal===0 ? 'Prévisionnel' : 'En cours');
+    const ec = e - o;
+    const col = ec >= 0 ? 'var(--green)' : 'var(--red)';
+    const dec = o
+      ? '<span style="color:'+col+'">'+(ec>=0?'+':'−')+fmtRaw(Math.abs(ec))+' ('+(e/o*100).toFixed(1)+'%)</span>'
+      : '<span style="color:var(--muted)">obj. n/a</span>';
+    let bars = '';
+    idx.forEach(i => {
+      const v = Number(eff[i])||0, ov = Number(obj[i])||0;
+      const h = Math.round(v/maxv*H), ho = Math.round(ov/maxv*H);
+      const c = i <= lastIdx ? '#6366f1' : 'rgba(99,102,241,0.45)';
+      bars += '<div class="tri-m"><div class="tri-bz">'
+        + (v>0 ? '<div class="tri-bar" style="height:'+h+'px;background:'+c+'"></div>' : '')
+        + (ov>0 ? '<div class="tri-obj" style="bottom:'+ho+'px"></div>' : '')
+        + '</div><span class="tri-ml">'+M[i]+'</span></div>';
+    });
+    html += '<div class="tri-card"><div class="tri-head">'
+      + '<span class="tri-t">T'+(t+1)+' '+fAnnee+'</span>'
+      + '<span class="tri-badge" style="'+ETATS[etat]+'">'+etat+'</span></div>'
+      + '<div class="tri-val">'+fmtRaw(e)+'</div>'
+      + '<div class="tri-sub">Obj. '+fmtRaw(o)+' · '+dec+'</div>'
+      + '<div class="tri-bars">'+bars+'</div></div>';
+  }
+  grid.innerHTML = html;
+}
+  
 function render() {
   const d = filtered();
   const ents = ['Orixa Media','Feedcast','Visiperf'];
@@ -384,8 +447,7 @@ sort:(a,b)=>{
     }
   }
 });
-  if(cBar) cBar.destroy();
-  cBar=new Chart(document.getElementById('cBar'),{type:'bar',data:{labels:mois.map(m=>MOIS[m]),datasets:ents.map(e=>({label:e,data:mois.map(m=>d.filter(r=>r.entite===e&&Number(r.mois_num)===m).reduce((s,r)=>s+Number(r.mb),0)),backgroundColor:COLORS[e]?.bg,borderColor:COLORS[e]?.b,borderWidth:1,borderRadius:3}))},options:base});
+renderTrimestres(realPrevN, objN, lastRealIdx);
     const fillEb = ebitdaM_g.map((v,i)=> i<=lastRealIdx ? v : null);
   if(cEbitda) cEbitda.destroy();
   cEbitda=new Chart(document.getElementById('cEbitda'),{
