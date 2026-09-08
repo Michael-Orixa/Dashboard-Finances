@@ -188,7 +188,7 @@ const COLORS = {
 };
 
 let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cEbitda, cLine;
-let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[], rawMktReal=[], rawMktPrev=[], rawEbObj=[], rawAcesReal=[], rawAcesPrev=[], rawMsFixe=[], rawMsPrime=[], rawMsPrimeProv=[], rawMsStc=[], rawMspFixe=[], rawMspPrime=[], rawMspStc=[], lastRealIdx=-1;
+let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[], rawMktReal=[], rawMktPrev=[], rawEbObj=[], rawAcesReal=[], rawAcesPrev=[], rawMsFixe=[], rawMsPrime=[], rawMsPrimeProv=[], rawMsStc=[], rawMspFixe=[], rawMspPrime=[], rawMspStc=[],rawMsFrl=[], rawMspFrl=[], lastRealIdx=-1;
   
 function saveToken(tok) {
   const ts = Date.now().toString();
@@ -275,12 +275,15 @@ const Q_MS_STC    = 'SELECT '+ENT+'SUM(ms_stc) AS ms FROM `'+T+'`'+GRP;
 const Q_MSP_FIXE  = 'SELECT '+ENT+'SUM(ms_prevision_fixe) AS ms FROM `'+TP+'`'+GRP;
 const Q_MSP_PRIME = 'SELECT '+ENT+'SUM(ms_prevision_prime) AS ms FROM `'+TP+'`'+GRP;
 const Q_MSP_STC   = 'SELECT '+ENT+'SUM(ms_prevision_stc) AS ms FROM `'+TP+'`'+GRP;
+const Q_MS_FRL  = 'SELECT '+ENT+'SUM(ms_freelance) AS ms FROM `'+T+'`'+GRP;
+const Q_MSP_FRL = 'SELECT '+ENT+'SUM(ms_prevision_freelance) AS ms FROM `'+TP+'`'+GRP;
     
-         [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev, rawEbObj, rawAcesReal, rawAcesPrev, rawMsFixe, rawMsPrime, rawMsStc, rawMspFixe, rawMspPrime, rawMspStc] = await Promise.all([
+         [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev, rawEbObj, rawAcesReal, rawAcesPrev, rawMsFixe, rawMsPrime, rawMsStc, rawMspFixe, rawMspPrime, rawMspStc, rawMsFrl, rawMspFrl] = await Promise.all([
       bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV),
       bqFetch(Q_ACEH_REAL), bqFetch(Q_ACEH_PREV), bqFetch(Q_MKT_REAL), bqFetch(Q_MKT_PREV), bqFetch(Q_EB_OBJ), bqFetch(Q_ACES_REAL), bqFetch(Q_ACES_PREV),
       bqFetch(Q_MS_FIXE), bqFetch(Q_MS_PRIME), bqFetch(Q_MS_STC),
-      bqFetch(Q_MSP_FIXE), bqFetch(Q_MSP_PRIME), bqFetch(Q_MSP_STC)
+      bqFetch(Q_MSP_FIXE), bqFetch(Q_MSP_PRIME), bqFetch(Q_MSP_STC),
+      bqFetch(Q_MS_FRL), bqFetch(Q_MSP_FRL)
     ]);
 saveToken(tok);
     document.getElementById('loadingOverlay').style.display='none';
@@ -506,6 +509,7 @@ function renderPL() {
   const fixe  = serieRealPrev(rawMsFixe,  rawMspFixe,  fAnnee, ents);
   const prime = serieRealPrev(rawMsPrime, rawMspPrime, fAnnee, ents);
   const stc   = serieRealPrev(rawMsStc,   rawMspStc,   fAnnee, ents);
+  const frl = serieRealPrev(rawMsFrl, rawMspFrl, fAnnee, ents);
   const aceHolding   = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, ents);
   const marketing = serieRealPrev(rawMktReal, rawMktPrev, fAnnee, ents);
   const aceStructure = serieRealPrev(rawAcesReal, rawAcesPrev, fAnnee, ents);
@@ -533,6 +537,7 @@ function renderPL() {
     {label:'   Fixe',   serie:fixe,  muted:true},
     {label:'   Primes', serie:prime, muted:true},
     {label:'   STC',    serie:stc,   muted:true},
+    {label:'   Freelance', serie:frl,   muted:true},
     {label:'ACE structure',             serie:aceStructure},
     {label:'ACE holding',               serie:aceHolding},
     {label:'Dépenses marketing',        serie:marketing},
