@@ -245,6 +245,7 @@ if(!EMAILS_AUTORISES.includes(u.email)) throw new Error('Accès non autorisé.')
     document.getElementById('uName').textContent=u.name||u.email||'';
     if(u.picture) document.getElementById('uAvatar').src=u.picture;
     document.getElementById('loginScreen').style.display='none';
+    saveToken(tok);
     document.getElementById('loadingTxt').textContent='Chargement MB...';
     
   const bqFetch = (sql) => fetch('https://bigquery.googleapis.com/bigquery/v2/projects/db-finances-496809/queries',{
@@ -285,16 +286,22 @@ const Q_MSP_FRL = 'SELECT '+ENT+'SUM(ms_prevision_freelance) AS ms FROM `'+TP+'`
       bqFetch(Q_MSP_FIXE), bqFetch(Q_MSP_PRIME), bqFetch(Q_MSP_STC),
       bqFetch(Q_MS_FRL), bqFetch(Q_MSP_FRL)
     ]);
-saveToken(tok);
+
     document.getElementById('loadingOverlay').style.display='none';
     render();
-  } catch(e) {
-    clearToken();
+   } catch(e) {
+    const msg = String((e && e.message) || e);
+    const authFail = /401|UNAUTHENTICATED|invalid[_ ]token|Invalid Credentials|non autorisé/i.test(msg);
     document.getElementById('loadingOverlay').style.display='none';
-    document.getElementById('loginScreen').style.display='flex';
-    const st=document.getElementById('loginStatus');
-    st.textContent='Erreur: '+e.message;
-    st.className='login-status error';
+    if (authFail) {
+      clearToken();
+      document.getElementById('loginScreen').style.display='flex';
+      const st=document.getElementById('loginStatus');
+      st.textContent='Erreur: '+msg;
+      st.className='login-status error';
+    } else {
+      alert('Chargement interrompu :\n\n'+msg+'\n\nVotre session reste ouverte. Rechargez la page pour réessayer.');
+    }
   }
 }
 
