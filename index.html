@@ -62,6 +62,12 @@
     td { font-size:10px; padding:5px 5px; }
     th { font-size:9px; padding:4px 5px; }
   }
+    .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; position:relative; display:inline-block; }
+  .dot::after { content:""; position:absolute; inset:0; border-radius:50%; animation:puls 2.4s ease-out infinite; }
+  .dot.v, .dot.v::after { background:var(--green); }
+  .dot.o, .dot.o::after { background:var(--visiperf); }
+  .dot.r, .dot.r::after { background:var(--red); }
+  @keyframes puls { 0% { transform:scale(1); opacity:0.7; } 70% { transform:scale(2.6); opacity:0; } 100% { opacity:0; } }
   .pill { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
   .p-o { background:rgba(99,102,241,0.15); color:#a5b4fc; }
   .p-f { background:rgba(34,211,238,0.15); color:#67e8f9; }
@@ -148,7 +154,7 @@
         <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span></div><div class="kpi-value" id="k1">—</div><div class="kpi-sub" id="k1Sub"></div></div>
         <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span></div><div class="kpi-value" id="k2">—</div><div class="kpi-sub" id="k2Sub"></div></div>
                         <div class="kpi k3"><div class="kpi-label">Seuil de rentabilité — <span id="k3Scope">Groupe</span></div><div class="kpi-value" id="k3">—</div></div>
-        <div class="kpi k4"><div class="kpi-label">—</div><div class="kpi-value" id="k4">—</div></div>
+        <div class="kpi k4"><div class="kpi-label">Actualisation</div><div style="display:flex;align-items:center;gap:8px"><span class="dot v" id="k4Dot"></span><span style="font-size:18px;font-weight:600" id="k4">—</span></div><div class="kpi-sub" id="k4Sub" style="display:block;margin-top:6px"></div></div>
     </div>
     <div class="charts-row" style="margin-bottom:12px">
       <div class="card">
@@ -196,7 +202,7 @@ const COLORS = {
 };
 
 let token=null, rawData=[], fEnt=new Set(), fAnnee='2026', cBar, cEbitda, cLine;
-let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[], rawMktReal=[], rawMktPrev=[], rawEbObj=[], rawAcesReal=[], rawAcesPrev=[], rawMsFixe=[], rawMsPrime=[], rawMsPrimeProv=[], rawMsStc=[], rawMspFixe=[], rawMspPrime=[], rawMspStc=[],rawMsFrl=[], rawMspFrl=[], lastRealIdx=-1;
+let rawDataPrev=[], rawDataObj=[], rawMsReal=[], rawMsPrev=[], rawAcehReal=[], rawAcehPrev=[], rawMktReal=[], rawMktPrev=[], rawEbObj=[], rawAcesReal=[], rawAcesPrev=[], rawMsFixe=[], rawMsPrime=[], rawMsPrimeProv=[], rawMsStc=[], rawMspFixe=[], rawMspPrime=[], rawMspStc=[],rawMsFrl=[], rawMspFrl=[],rawMaj=[], lastRealIdx=-1;
   
 function saveToken(tok) {
   const ts = Date.now().toString();
@@ -286,13 +292,16 @@ const Q_MSP_PRIME = 'SELECT '+ENT+'SUM(ms_prevision_prime) AS ms FROM `'+TP+'`'+
 const Q_MSP_STC   = 'SELECT '+ENT+'SUM(ms_prevision_stc) AS ms FROM `'+TP+'`'+GRP;
 const Q_MS_FRL  = 'SELECT '+ENT+'SUM(ms_freelance) AS ms FROM `'+T+'`'+GRP;
 const Q_MSP_FRL = 'SELECT '+ENT+'SUM(ms_prevision_freelance) AS ms FROM `'+TP+'`'+GRP;
+const Q_MAJ = 'SELECT MAX(last_modified_time) AS ts FROM `db-finances-496809.Masse_salariale.__TABLES__` WHERE table_id = "MS_Groupe_mat"';
     
-         [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev, rawEbObj, rawAcesReal, rawAcesPrev, rawMsFixe, rawMsPrime, rawMsStc, rawMspFixe, rawMspPrime, rawMspStc, rawMsFrl, rawMspFrl] = await Promise.all([
+         [rawData, rawDataPrev, rawDataObj, rawMsReal, rawMsPrev, rawAcehReal, rawAcehPrev, rawMktReal, rawMktPrev, rawEbObj, rawAcesReal, rawAcesPrev, rawMsFixe, rawMsPrime, rawMsStc, rawMspFixe, rawMspPrime, rawMspStc, rawMsFrl, rawMspFrl,rawMaj] = await Promise.all([
       bqFetch(Q_REAL), bqFetch(Q_PREV), bqFetch(Q_OBJ), bqFetch(Q_MS_REAL), bqFetch(Q_MS_PREV),
       bqFetch(Q_ACEH_REAL), bqFetch(Q_ACEH_PREV), bqFetch(Q_MKT_REAL), bqFetch(Q_MKT_PREV), bqFetch(Q_EB_OBJ), bqFetch(Q_ACES_REAL), bqFetch(Q_ACES_PREV),
       bqFetch(Q_MS_FIXE), bqFetch(Q_MS_PRIME), bqFetch(Q_MS_STC),
       bqFetch(Q_MSP_FIXE), bqFetch(Q_MSP_PRIME), bqFetch(Q_MSP_STC),
-      bqFetch(Q_MS_FRL), bqFetch(Q_MSP_FRL)
+      bqFetch(Q_MS_FRL), bqFetch(Q_MSP_FRL), bqFetch(Q_MS_FRL), bqFetch(Q_MSP_FRL),
+      bqFetch(Q_MAJ)
+    ]);
     ]);
 
     document.getElementById('loadingOverlay').style.display='none';
@@ -385,7 +394,33 @@ function renderTrimestres(eff, obj, lastIdx) {
   }
   grid.innerHTML = html;
 }
-  
+function animeKpi(id, cible) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  const t0 = performance.now(), D = 1100;
+  function pas(t) {
+    const p = Math.min((t-t0)/D, 1);
+    const e = 1 - Math.pow(1-p, 3);
+    el.textContent = fmtRaw(cible*e);
+    if(p<1) requestAnimationFrame(pas);
+  }
+  requestAnimationFrame(pas);
+}
+
+function majFraicheur(tsMs) {
+  const el = document.getElementById('k4'), sub = document.getElementById('k4Sub'), dot = document.getElementById('k4Dot');
+  if(!el) return;
+  if(!tsMs) { el.textContent = 'inconnue'; sub.textContent = ''; dot.className = 'dot o'; return; }
+  const d = new Date(tsMs), min = Math.round((Date.now()-d)/60000);
+  el.textContent = min<60 ? 'il y a '+min+' min'
+    : min<2880 ? 'il y a '+Math.round(min/60)+' h'
+    : 'il y a '+Math.round(min/1440)+' j';
+  el.style.color = min>240 ? 'var(--red)' : 'var(--text)';
+  dot.className = 'dot ' + (min<=120 ? 'v' : min<=240 ? 'o' : 'r');
+  sub.innerHTML = '<span style="color:var(--muted)">'
+    + d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})
+    + ' à ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) + '</span>';
+}
 function render() {
   const d = filtered();
   const ents = ['Orixa Media','Feedcast','Visiperf'];
@@ -396,7 +431,7 @@ function render() {
   const realN1    = serieMois(rawData, String(Number(fAnnee)-1), fEnt);
   const objN      = serieMois(rawDataObj, fAnnee, fEnt);
 
-  document.getElementById('k1').textContent = fmtRaw(realPrevN.reduce((s,v)=>s+v,0));
+  
   document.getElementById('k1Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
   const msKpi   = serieRealPrev(rawMsReal, rawMsPrev, fAnnee, fEnt);
   const acehKpi = serieRealPrev(rawAcehReal, rawAcehPrev, fAnnee, fEnt);
@@ -413,7 +448,6 @@ function render() {
   const aces1 = serieMois(rawAcesReal, an1, fEnt);
   const ebitdaN1 = realN1.map((v,i)=> v - ms1[i] - ach1[i] - mkt1[i] - aces1[i]);
   const ebitdaObj = serieMois(rawEbObj, fAnnee, fEnt);
-  document.getElementById('k2').textContent = fmtRaw(ebitdaKpi);
   document.getElementById('k2Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
   
   const totMB = som(realPrevN), totN1 = som(realN1), totObj = som(objN);
@@ -425,7 +459,6 @@ function render() {
   };
   document.getElementById('k1Sub').innerHTML = ecart(totMB,totN1,'vs N-1') + ecart(totMB,totObj,'vs obj.');
   document.getElementById('k2Sub').innerHTML = ecart(ebitdaKpi, som(ebitdaN1), 'vs N-1') + ecart(ebitdaKpi, som(ebitdaObj), 'vs obj.');
-  document.getElementById('k3').textContent = fmtRaw(som(msKpi) + som(acehKpi) + som(mktKpi) + som(acesKpi));
   document.getElementById('k3Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
@@ -492,7 +525,11 @@ renderTrimestres(realPrevN, objN, lastRealIdx);
       }
     }
   });
- 
+  animeKpi('k1', realPrevN.reduce((s,v)=>s+v,0));
+  animeKpi('k2', ebitdaKpi);
+  animeKpi('k3', som(msKpi) + som(acehKpi) + som(mktKpi) + som(acesKpi));
+  majFraicheur(rawMaj && rawMaj[0] && rawMaj[0].ts ? Number(rawMaj[0].ts) : null);
+  
   renderPL();
 }
  function montant(x) {
