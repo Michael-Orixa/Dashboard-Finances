@@ -10,10 +10,10 @@
   :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#222636; --border:rgba(255,255,255,0.08); --text:#e8eaf0; --muted:#6b7280; --accent:#6366f1; --green:#10b981; --red:#ef4444; --orixa:#6366f1; --feedcast:#22d3ee; --visiperf:#f59e0b; }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--bg); color:var(--text); font-family:"DM Sans",sans-serif; min-height:100vh; display:flex; }
-  .sidebar { width:200px; min-width:200px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; height:100vh; z-index:10; }
-    .sidebar-logo { height:62px; flex:0 0 auto; display:flex; align-items:center; padding:0 1.2rem; border-bottom:1px solid var(--border); }
+  .sidebar { width:238px; min-width:238px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; height:100vh; z-index:10; }
+  .sidebar-logo { height:62px; flex:0 0 auto; display:flex; align-items:center; padding:0 1.2rem; border-bottom:1px solid var(--border); }
   .sidebar-nav { display:flex; flex-direction:column; gap:4px; padding:1rem 0.8rem; flex:1; }
-  .nav-btn { padding:8px 12px; border-radius:8px; border:1px solid transparent; background:transparent; color:var(--muted); font-size:12px; font-family:"DM Sans",sans-serif; cursor:pointer; font-weight:500; text-align:left; width:100%; display:flex; align-items:center; gap:8px; text-decoration:none; transition:all 0.15s; }
+    .nav-btn { padding:10px 13px; border-radius:8px; border:1px solid transparent; background:transparent; color:var(--muted); font-size:13px; font-family:"DM Sans",sans-serif; cursor:pointer; font-weight:500; text-align:left; width:100%; display:flex; align-items:center; gap:10px; text-decoration:none; transition:all 0.15s; }
   .nav-btn svg { width:16px; height:16px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; opacity:0.85; }
   .nav-btn.active svg { opacity:1; }
   .nav-btn:hover { color:var(--text); background:var(--surface2); }
@@ -24,7 +24,7 @@
   .user-avatar { width:26px; height:26px; border-radius:50%; border:1px solid var(--border); flex-shrink:0; }
   .btn-logout { padding:5px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:11px; cursor:pointer; width:100%; text-align:center; }
   .btn-logout:hover { border-color:var(--red); color:var(--red); }
-  .main-content { margin-left:200px; flex:1; min-width:0; }
+    .main-content { margin-left:238px; flex:1; min-width:0; }
   .filters { min-height:62px; padding:9px 2rem; display:flex; gap:8px; align-items:center; border-bottom:1px solid var(--border); flex-wrap:nowrap; overflow-x:auto; }
   .filter-label { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
   .filter-btn { padding:4px 12px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:"DM Sans",sans-serif; cursor:pointer; transition:all 0.15s; }
