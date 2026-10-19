@@ -940,8 +940,15 @@ async function charger(tok){
   /* exercices proposés : ceux que les objectifs couvrent, du plus récent
      au plus ancien, limités à 2025 et au-delà — avant, la couverture des
      prévisions était trop partielle pour que la comparaison ait un sens. */
+  /* Un exercice n'est proposé que s'il porte un objectif quelque part :
+     toute la page se lit face à l'objectif annuel, et un exercice qui n'en a
+     pas encore donne des écarts dénués de sens. Les prévisions saisies sur
+     l'année suivante ouvraient sinon un onglet dès le premier montant entré.
+     L'exercice réapparaît de lui-même le jour où ses objectifs sont fixés. */
   ANNEES = [...new Set(Object.values(DATA)
-    .flatMap(d => Object.keys(d.annees)))]
+    .flatMap(d => Object.entries(d.annees)
+      .filter(([, v]) => (v.obj || 0) > 0)
+      .map(([a]) => a)))]
     .map(Number).filter(a => a >= 2025).sort((a,b) => b - a);
 }
 
@@ -1006,11 +1013,18 @@ const VUES = {
 };
 
 /* ---- état courant ---- */
-let scope = 'Orixa Media';
+/* la page s'ouvre sur la vue d'ensemble : le groupe, exercice en cours */
+let scope = 'Groupe';
 let D = jeu(scope);
 
 let ANNEES = [];
 let annee = null;
+
+/* la section visible découle de `scope`, à l'ouverture comme au clic : sans
+   cela, le périmètre affiché au chargement dépendrait de quel <section> du
+   HTML porte l'attribut hidden, et non du périmètre réellement sélectionné */
+const montrerVue = () => document.querySelectorAll('.vue').forEach(v =>
+  v.hidden = v.dataset.vue !== scope);
 
 /* ---- pastilles de périmètre ---- */
 const pBox = document.getElementById('scopes');
@@ -1025,8 +1039,7 @@ function pastillesPerimetre(){
     D = jeu(scope);
     pBox.querySelectorAll('.pill').forEach(p =>
       p.setAttribute('aria-pressed', p.textContent === nom));
-    document.querySelectorAll('.vue').forEach(v =>
-      v.hidden = v.dataset.vue !== nom);
+    montrerVue();
     render();
   };
   pBox.appendChild(b);
@@ -1066,6 +1079,17 @@ const kr = (lib, val, titre) =>
 /* l'exercice affiché comporte-t-il de la prévision ? */
 const partiel = () => ((D.annees[annee] || {}).prev || 0) > 0;
 
+/* Comment l'exercice affiché est constitué. Trois cas, et non deux : un
+   exercice clos, un exercice en cours — réalisé puis prévision — et un
+   exercice à venir, qui n'est que de la prévision. Le troisième existe dès
+   qu'un commercial saisit des prévisions sur l'année suivante. */
+const cadrage = () => {
+  const d = D.annees[annee] || {};
+  if (!(d.prev > 0))  return 'Exercice ' + annee + ' clos';
+  if (!(d.reel > 0))  return 'Prévision seule, aucun réalisé';
+  return 'Réalisé à ' + finClos() + ' + prévision';
+};
+
 /* 2022 → année affichée */
 const sequence = fin => { const t=[]; for (let a=2022; a<=fin; a++) t.push(a); return t; };
 
@@ -1086,7 +1110,6 @@ const totSect = (a, i) => !D.mix[a] ? null
 function kpis(){
   const d = D.annees[annee];
   const att = d.reel + d.prev;
-  const taux = 100 * att / d.obj;
 
   /* 1 — marge brute attendue */
   document.getElementById('kMb').textContent = keur(att);
@@ -1095,9 +1118,13 @@ function kpis(){
       kr('vs N-1', sgn(n1 === null ? null : att - n1),
          n1 === null ? 'Réalisé ' + (annee-1) + ' non disponible'
                      : 'Réalisé ' + (annee-1) + ' : ' + keur(n1))
-    + kr('vs objectif', sgn(att - d.obj),
-         'Objectif ' + annee + ' : ' + keur(d.obj)
-         + ' · atteinte ' + Math.round(taux) + ' %')
+    /* un objectif à zéro n'est pas un objectif manqué, c'est un objectif
+       non fixé : sans ce garde-fou, l'écart valait la marge entière et le
+       taux d'atteinte partait à l'infini */
+    + kr('vs objectif', sgn(d.obj ? att - d.obj : null),
+         d.obj ? 'Objectif ' + annee + ' : ' + keur(d.obj)
+                 + ' · atteinte ' + Math.round(100*att/d.obj) + ' %'
+               : 'Aucun objectif saisi sur cet exercice')
     + kr(partiel() ? 'dont prévision' : 'réalisé',
          `<b>${keur(partiel() ? d.prev : d.reel)}</b>`);
 
@@ -1258,9 +1285,8 @@ function courbes(canvas, leg, ans, series, estime){
 
 /* ---- barres et courbes de la vue Orixa Media ---- */
 function bars(){
-  document.getElementById('poleSub').textContent = partiel()
-    ? 'Réalisé à ' + finClos() + ' + prévision, face à l’objectif annuel'
-    : 'Exercice clos, face à l’objectif annuel';
+  document.getElementById('poleSub').textContent =
+    cadrage() + ', face à l’objectif annuel';
   barres(document.getElementById('poleBars'), POLES,
          D.poles[annee] || {}, D.reel[annee-1] || null, 'Pôle', false);
 }
@@ -1341,9 +1367,8 @@ function matrice(){
     panneau('Alto', 0, tA, 'alto') +
     panneau('Origine', 1, tO, 'ori');
 
-  document.getElementById('mixSub').textContent = annee === 2026
-    ? 'Atterrissage 2026 · la barre de fond donne le poids du pôle dans son bloc'
-    : 'Exercice 2025 clos · la barre de fond donne le poids du pôle dans son bloc';
+  document.getElementById('mixSub').textContent =
+    cadrage() + ' · la barre de fond donne le poids du pôle dans son bloc';
 
   document.getElementById('mixNote').textContent =
       'Vos objectifs sont fixés par pôle mais pas par secteur : la colonne '
@@ -1458,9 +1483,8 @@ function tops(){
   const d = D.annees[annee];
   const part = 100 * rows.reduce((s,r) => s + r[1], 0) / (d.reel + d.prev);
 
-  document.getElementById('topSub').textContent = annee === 2026
-    ? 'Réalisé à ' + finClos() + ' + prévision · les dix premiers comptes'
-    : 'Exercice 2025 clos · les dix premiers comptes';
+  document.getElementById('topSub').textContent =
+    cadrage() + ' · les dix premiers comptes';
 
   const entete = `<div class="top-row thead">
     <span></span><span></span><span>Marge</span><span>vs N-1</span><span>% MB global</span>
@@ -1502,9 +1526,8 @@ function nouveaux(){
   const somme = l => l.reduce((s,r) => s + r[3], 0);
   const alto = par('Alto'), ori = par('Origine');
 
-  document.getElementById('neoSub').textContent = annee === 2026
-    ? 'Premier exercice avec de la marge · réalisé à ' + finClos() + ' + prévision'
-    : 'Premier exercice avec de la marge · exercice 2025 clos';
+  document.getElementById('neoSub').textContent =
+    'Premier exercice avec de la marge · ' + cadrage().toLowerCase();
 
   document.getElementById('neoSum').innerHTML =
       `<span><b>${rows.length}</b> comptes</span>`
@@ -1650,8 +1673,18 @@ function render(){
 }
 
 /* ---- affichage, une fois la donnée chargée ---- */
+/* Exercice retenu à l'ouverture : celui du dernier mois clos, et non le
+   plus récent de la liste. Les deux coïncident presque toujours, sauf entre
+   la saisie des objectifs de l'année suivante et son premier jour — la page
+   s'ouvrirait alors sur un exercice à venir, vide de réalisé. */
+const exerciceCourant = () => {
+  const a = CLOS ? Number(CLOS.slice(0, 4)) : null;
+  return (a && ANNEES.includes(a)) ? a : ANNEES[0];
+};
+
 function demarrer(){
-  annee = ANNEES[0];
+  annee = exerciceCourant();
+  montrerVue();
   D = jeu(scope);
   pastillesPerimetre();
   pastillesAnnee();
