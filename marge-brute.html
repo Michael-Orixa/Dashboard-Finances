@@ -1002,6 +1002,13 @@ const keur = v => v >= 1e6 ? (v/1e6).toFixed(2).replace('.',',') + ' M€'
                            : nf.format(Math.round(v/1000)) + ' K€';
 const pct = v => (v>=0?'+':'−') + Math.round(Math.abs(v)) + ' %';
 
+/* Format des indicateurs du haut de page : une seule décimale sur les
+   millions, comme la page Activité. Le détail des blocs en garde deux :
+   un chiffre qu'on lit d'un coup d'œil n'appelle pas la même précision
+   qu'un chiffre qu'on compare ligne à ligne. */
+const kgros = v => v >= 1e6 ? (v/1e6).toFixed(1).replace('.',',') + ' M€'
+                            : nf.format(Math.round(v/1000)) + ' K€';
+
 /* ---- registre des rendus : une entrée par vue construite ----
    Une vue absente d'ici affiche sa section telle qu'elle est dans le HTML,
    sans rien calculer. */
@@ -1073,6 +1080,10 @@ function pastillesAnnee(){
 const sgn = v => v === null
   ? '<b class="nil">—</b>'
   : `<b class="${v>=0?'up':'down'}">${v>=0?'+':'−'}${keur(Math.abs(v))}</b>`;
+/* même chose pour les écarts signés des blocs du haut */
+const sgnGros = v => v === null
+  ? '<b class="nil">—</b>'
+  : `<b class="${v>=0?'up':'down'}">${v>=0?'+':'−'}${kgros(Math.abs(v))}</b>`;
 const kr = (lib, val, titre) =>
   `<div class="kpi-r"${titre?` title="${titre}"`:''}><span>${lib}</span>${val}</div>`;
 
@@ -1112,31 +1123,31 @@ function kpis(){
   const att = d.reel + d.prev;
 
   /* 1 — marge brute attendue */
-  document.getElementById('kMb').textContent = keur(att);
+  document.getElementById('kMb').textContent = kgros(att);
   const n1 = somme(D.reel[annee - 1]);
   document.getElementById('kMbRows').innerHTML =
-      kr('vs N-1', sgn(n1 === null ? null : att - n1),
+      kr('vs N-1', sgnGros(n1 === null ? null : att - n1),
          n1 === null ? 'Réalisé ' + (annee-1) + ' non disponible'
                      : 'Réalisé ' + (annee-1) + ' : ' + keur(n1))
     /* un objectif à zéro n'est pas un objectif manqué, c'est un objectif
        non fixé : sans ce garde-fou, l'écart valait la marge entière et le
        taux d'atteinte partait à l'infini */
-    + kr('vs objectif', sgn(d.obj ? att - d.obj : null),
+    + kr('vs objectif', sgnGros(d.obj ? att - d.obj : null),
          d.obj ? 'Objectif ' + annee + ' : ' + keur(d.obj)
                  + ' · atteinte ' + Math.round(100*att/d.obj) + ' %'
                : 'Aucun objectif saisi sur cet exercice')
     + kr(partiel() ? 'dont prévision' : 'réalisé',
-         `<b>${keur(partiel() ? d.prev : d.reel)}</b>`);
+         `<b>${kgros(partiel() ? d.prev : d.reel)}</b>`);
 
   /* 2 et 3 — les deux secteurs */
   const secteur = (idV, idR, i) => {
     const v = totSect(annee, i);
     const p = totSect(annee-1, i);
-    document.getElementById(idV).textContent = keur(v);
+    document.getElementById(idV).textContent = kgros(v);
     document.getElementById(idR).innerHTML =
-        kr('vs N-1', sgn(p === null ? null : v - p),
+        kr('vs N-1', sgnGros(p === null ? null : v - p),
            p === null ? 'Répartition par secteur non disponible sur ' + (annee-1) : '')
-      + kr('vs objectif', sgn(null), 'Objectifs par secteur non encore renseignés')
+      + kr('vs objectif', sgnGros(null), 'Objectifs par secteur non encore renseignés')
       + kr('% MB global', `<b>${Math.round(100*v/att)} %</b>`);
   };
   secteur('kOriV', 'kOriRows', 1);
@@ -1590,17 +1601,17 @@ function parts(valeurs, total){
 /* indicateur « marge brute attendue », identique partout */
 function kpiMarge(sec, d, n1){
   const att = d.reel + d.prev, part = d.prev > 0;
-  sec.querySelector('.kmb').textContent = keur(att);
+  sec.querySelector('.kmb').textContent = kgros(att);
   sec.querySelector('.kmbr').innerHTML =
-      kr('vs N-1', sgn(n1 === null ? null : att - n1),
+      kr('vs N-1', sgnGros(n1 === null ? null : att - n1),
          n1 === null ? 'Réalisé ' + (annee-1) + ' non disponible'
                      : 'Réalisé ' + (annee-1) + ' : ' + keur(n1))
-    + kr('vs objectif', sgn(d.obj ? att - d.obj : null),
+    + kr('vs objectif', sgnGros(d.obj ? att - d.obj : null),
          d.obj ? 'Objectif ' + annee + ' : ' + keur(d.obj)
                  + ' · atteinte ' + Math.round(100*att/d.obj) + ' %'
                : 'Aucun objectif saisi sur ce périmètre')
     + kr(part ? 'dont prévision' : 'réalisé',
-         '<b>' + keur(part ? d.prev : d.reel) + '</b>');
+         '<b>' + kgros(part ? d.prev : d.reel) + '</b>');
 }
 
 /* sous-titres communs */
@@ -1633,12 +1644,12 @@ function vueGroupe(){
   ENTITES.forEach(([n], i) => {
     const x = src[n], v = x ? x.r + x.p : 0;
     const p = somme(((DATA[n] || {}).reel || {})[annee-1]);
-    sec.querySelector('[data-ent="' + n + '"]').textContent = keur(v);
+    sec.querySelector('[data-ent="' + n + '"]').textContent = kgros(v);
     sec.querySelector('[data-entr="' + n + '"]').innerHTML =
-        kr('vs N-1', sgn(p === null ? null : v - p),
+        kr('vs N-1', sgnGros(p === null ? null : v - p),
            p === null ? 'Réalisé ' + (annee-1) + ' non disponible'
                       : 'Réalisé ' + (annee-1) + ' : ' + keur(p))
-      + kr('vs objectif', sgn(x && x.o ? v - x.o : null),
+      + kr('vs objectif', sgnGros(x && x.o ? v - x.o : null),
            x && x.o ? 'Objectif ' + annee + ' : ' + keur(x.o)
                       + ' · atteinte ' + Math.round(100*v/x.o) + ' %'
                     : 'Aucun objectif saisi')
