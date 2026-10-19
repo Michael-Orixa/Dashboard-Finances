@@ -717,7 +717,15 @@ JOIN \`${P}.Clients.Comptes_Orixa_Media_mat\` g USING (Id_groupe)
 WHERE a.attendu > 0
 GROUP BY 1, 2, 3`;
 
-/* F — fraîcheur de la donnée affichée : la plus ancienne des neuf tables
+/* F — objectifs annuels par secteur, Orixa Media */
+const Q_OBJSECT = `
+SELECT annee, secteur, ROUND(SUM(mb)) AS mb
+FROM \`${P}.Marge_brute.MB_Objectifs_Secteur_Orixa_Media_mat\`
+WHERE secteur IN ('Alto','Origine')
+GROUP BY 1, 2
+ORDER BY 1, 2`;
+
+/* G — fraîcheur de la donnée affichée : la plus ancienne des neuf tables
    matérialisées qui alimentent la page, c'est-à-dire la plus prudente.
    __TABLES__ est propre à chaque dataset, d'où l'union des trois. */
 const Q_MAJ = `
@@ -726,7 +734,8 @@ SELECT (SELECT MIN(ts) FROM (
           FROM \`${P}.Marge_brute.__TABLES__\`
           WHERE table_id IN ('MB_Realisee_Groupe_mat','MB_Previsions_Groupe_mat',
                              'MB_objectifs_Groupe_mat','MB_Realisee_Orixa_media_mat',
-                             'MB_Realisee_Visiperf_mat','MB_Objectifs_Orixa_Media_mat')
+                             'MB_Realisee_Visiperf_mat','MB_Objectifs_Orixa_Media_mat',
+                             'MB_Objectifs_Secteur_Orixa_Media_mat')
           UNION ALL
           SELECT MIN(last_modified_time)
           FROM \`${P}.Clients.__TABLES__\`
@@ -780,6 +789,11 @@ const nomCourt = n => COURT[n] || n;
    La marge est celle du parc, pour qu'un compte affiche la même valeur
    dans ce bloc et dans les autres. */
 let OM_NOUVEAUX = {};
+
+/* objectifs annuels par secteur : { exercice: [Alto, Origine] }.
+   Saisis à l'année, pas au mois, et seulement pour les exercices où la
+   ventilation a été arbitrée — d'où le tiret partout ailleurs. */
+let OM_OBJSECT = {};
 
 /* ─── Visiperf ────────────────────────────────────────────────────────────
    Pôles disponibles au réalisé et en prévision. Les objectifs, eux, ne sont
@@ -843,7 +857,7 @@ const tranche = (a,i) => (PARC[a] || []).filter(([,v]) =>
 const DATA = {
   'Orixa Media': {
     reel: OM_REEL, annees: OM_ANNEE, poles: OM_PO,
-    mix: OM_MIX, nouveaux: OM_NOUVEAUX
+    mix: OM_MIX, nouveaux: OM_NOUVEAUX, objSect: OM_OBJSECT
   },
   /* Feedcast : marge suivie globalement, sans pôle ni détail client. */
   'Feedcast': { reel: FC_REEL, annees: FC_ANNEE },
@@ -897,6 +911,13 @@ function rangerMix(lignes){
   });
 }
 
+function rangerObjSecteurs(lignes){
+  lignes.forEach(l => {
+    const i = l.secteur === 'Alto' ? 0 : 1;
+    (OM_OBJSECT[l.annee] = OM_OBJSECT[l.annee] || [0,0])[i] += n(l.mb);
+  });
+}
+
 /* La requête renvoie une ligne par compte, exercice et pôle. On en tire
    deux lectures : le détail par pôle (PARC_PO) et le total par compte (PARC),
    ce dernier obtenu par somme pour rester cohérent avec le premier.
@@ -926,14 +947,15 @@ function rangerNouveaux(lignes){
 
 async function charger(tok){
   const q = sql => bqQuery(tok, sql);
-  const [tot, pol, mix, parc, neo, maj] = await Promise.all([
-    q(Q_TOTAUX), q(Q_POLES), q(Q_MIX), q(Q_PARC), q(Q_NOUVEAUX), q(Q_MAJ)
+  const [tot, pol, mix, parc, neo, objs, maj] = await Promise.all([
+    q(Q_TOTAUX), q(Q_POLES), q(Q_MIX), q(Q_PARC), q(Q_NOUVEAUX), q(Q_OBJSECT), q(Q_MAJ)
   ]);
   rangerTotaux(tot);
   rangerPoles(pol);
   rangerMix(mix);
   rangerParc(parc);
   rangerNouveaux(neo);
+  rangerObjSecteurs(objs);
   MAJ_TS = maj[0] && maj[0].ts ? Number(maj[0].ts) : null;
   CLOS = maj[0] && maj[0].cutoff ? maj[0].cutoff : null;
 
@@ -1115,6 +1137,9 @@ const serie = (jd, nom, a, courante) => a === courante
 const somme = o => o ? Object.values(o).reduce((t,v) => t + v, 0) : null;
 
 /* total d'un secteur : i = 0 Alto, 1 Origine */
+/* objectif annuel du secteur i (0 Alto, 1 Origine), null s'il n'est pas saisi */
+const objSect = (a, i) => ((D.objSect || {})[a] || [])[i] || null;
+
 const totSect = (a, i) => !D.mix[a] ? null
   : POLES.reduce((s,[n]) => s + (D.mix[a][n] ? D.mix[a][n][i] : 0), 0);
 
@@ -1147,7 +1172,11 @@ function kpis(){
     document.getElementById(idR).innerHTML =
         kr('vs N-1', sgnGros(p === null ? null : v - p),
            p === null ? 'Répartition par secteur non disponible sur ' + (annee-1) : '')
-      + kr('vs objectif', sgnGros(null), 'Objectifs par secteur non encore renseignés')
+      + kr('vs objectif', sgnGros(objSect(annee, i) ? v - objSect(annee, i) : null),
+           objSect(annee, i)
+             ? 'Objectif ' + annee + ' : ' + keur(objSect(annee, i))
+               + ' · atteinte ' + Math.round(100*v/objSect(annee, i)) + ' %'
+             : 'Objectif ' + annee + ' non ventilé par secteur')
       + kr('% MB global', `<b>${Math.round(100*v/att)} %</b>`);
   };
   secteur('kOriV', 'kOriRows', 1);
@@ -1339,11 +1368,14 @@ function matrice(){
     .sort((a,b) => val(b,2) - val(a,2));
 
   const panneau = (titre, i, total, cls) => {
-    const avecObj = i === 2;          // les objectifs ne sont pas ventilés par secteur
+    /* l'objectif de l'ensemble est la somme des objectifs de pôle ; ceux des
+       deux secteurs viennent de leur propre classeur, à l'année. */
+    const objSec = i === 2 ? null : objSect(annee, i);
+    const avecObj = i === 2;          // le détail par pôle n'existe que sur l'ensemble
     const som = prec ? POLES.reduce((s,[n]) => s + pre(n,i), 0) : null;
     const dTot = som === null ? null : total - som;
     const objTot = avecObj ? POLES.reduce((s,[n]) => s + (D.poles[annee][n]?.o || 0), 0) : 0;
-    const dObj = avecObj ? total - objTot : null;
+    const dObj = avecObj ? total - objTot : (objSec ? total - objSec : null);
 
     const rows = ordre
       .map(n => ({
@@ -1382,8 +1414,9 @@ function matrice(){
     cadrage() + ' · la barre de fond donne le poids du pôle dans son bloc';
 
   document.getElementById('mixNote').textContent =
-      'Vos objectifs sont fixés par pôle mais pas par secteur : la colonne '
-    + '« vs obj. » n’est donc renseignée que sur l’ensemble.';
+      'Les objectifs par secteur sont fixés à l’année, ceux par pôle au mois : '
+    + 'chaque secteur est donc comparé à son total, et la colonne « vs obj. » '
+    + 'du détail n’existe que sur l’ensemble.';
 }
 
 /* ---- répartition du parc par tranche ---- */
