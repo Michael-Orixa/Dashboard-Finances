@@ -1419,6 +1419,10 @@ function popListe(lib, comptes){
 /* ventilation d'un compte par pôle, couleurs du bloc « Marge brute par pôle ».
    Les lignes négatives sont des régularisations : on les montre telles quelles,
    signalées en rouge, plutôt que de les fondre dans le total. */
+/* Sous 1 000 €, l'arrondi au millier afficherait « 0 K€ » et ferait
+   disparaître un pôle pourtant listé : une décimale le garde lisible. */
+const kpole = v => v < 1000 ? (v/1000).toFixed(1).replace('.', ',') + ' K€' : keur(v);
+
 function popPoles(nom, total){
   const det = (PARC_PO[annee] || {})[nom] || [];
   if (!det.length) return `<h4>${nomCourt(nom)}</h4>`
@@ -1428,7 +1432,7 @@ function popPoles(nom, total){
     + det.map(([po,v]) =>
         `<div class="pop-row po"><em>${po}</em>`
         + `<span${v < 0 ? ' class="neg"' : ''}>${v < 0 ? '−' : ''}`
-        + `${Math.abs(v) < 10000 ? eur(Math.abs(v)) : keur(Math.abs(v))}</span>`
+        + `${kpole(Math.abs(v))}</span>`
         + `<span class="pc">${Math.round(100*v/total)} %</span></div>`).join('')
     + `<p class="pop-plus">${det.length} pôle${det.length > 1 ? 's' : ''} · `
     + `${keur(total)} attendus`
