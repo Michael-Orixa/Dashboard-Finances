@@ -16,8 +16,8 @@
   --txt-3:#6b7280;
   --accent:#6366f1;
   --accent-soft:rgba(99,102,241,.38);
-  --good:#66b490;
-  --bad:#e3827b;
+  --good:#10b981;
+  --bad:#ef4444;
   /* palette catégorielle validée (7 pôles) */
   /* palette des pôles, désaturée de 26 % vers un gris neutre : les teintes
      restent distinctes mais ne tirent plus l'œil au détriment des chiffres */
@@ -81,7 +81,9 @@ body{
 @keyframes tourne{to{transform:rotate(360deg)}}
 .spin-txt{font-size:13px; color:var(--txt-3)}
 
-.wrap{max-width:1280px; margin:0 auto; padding-inline:16px; padding-block:0 48px}
+/* pleine largeur, gouttières de 2rem : même gabarit qu'index.html et
+   historique.html, pour que le contenu ne saute pas d'une page à l'autre */
+.wrap{padding-inline:2rem; padding-block:0 48px}
 
 /* ---------- bandeau ---------- */
 .top{
@@ -92,7 +94,7 @@ body{
 .top-in{
   /* le filet du bandeau porte sur .top : on retranche son épaisseur pour que
      les deux traits tombent sur la même ligne */
-  max-width:1280px; margin:0 auto; min-height:calc(var(--entete) - 1px); padding:9px 16px;
+  min-height:calc(var(--entete) - 1px); padding:9px 2rem;
   display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px;
 }
 .brand{font-size:15px; font-weight:600; letter-spacing:.02em; margin-right:4px}
@@ -296,22 +298,49 @@ body{
 .leg i.f-losange{width:8px; height:8px; border-radius:1px; transform:rotate(45deg)}
 .leg i.f-fort{width:12px; height:3.5px}
 
-@media (max-width:1200px){ .grid{grid-template-columns:1fr} }
+/* deux colonnes seulement au-delà de 1320 px : en deçà, chaque carte
+   tomberait sous 410 px et la légende des sept pôles n'y tiendrait plus */
+@media (max-width:1320px){ .grid{grid-template-columns:1fr} }
 
 @media (max-width:900px){
   body{display:block}
   .sidebar{position:static; width:auto; min-width:0; height:auto; flex-direction:row;
-    align-items:center; gap:10px; border-right:0; border-bottom:1px solid var(--line)}
+    align-items:center; gap:10px; border-right:0; border-bottom:1px solid var(--line);
+    flex-wrap:wrap}
   .sidebar-logo{border-bottom:0; height:auto; padding:.6rem 1rem}
-  .sidebar-nav{flex-direction:row; padding:.5rem .8rem; gap:6px}
+  .sidebar-nav{flex-direction:row; flex-wrap:wrap; padding:.5rem .8rem; gap:6px; flex:1 1 auto}
+  /* les entrées reprennent leur largeur de contenu : en pile, elles
+     coûteraient 200 px de hauteur avant le premier chiffre */
+  .nav-btn{width:auto; padding:7px 11px; font-size:12.5px; gap:7px}
   .main{margin-left:0}
   .kpis{grid-template-columns:1fr 1fr}
   .grid{grid-template-columns:1fr}
 }
+/* ---------- téléphone et tablette étroite ----------
+   Sous 640 px, les colonnes fixes des tableaux dépassent la largeur de la
+   carte. On supprime la colonne de barre — purement illustrative, la valeur
+   chiffrée est juste à côté — et on resserre les colonnes de chiffres.
+   La deuxième cellule de chaque ligne porte la barre, en-tête compris. */
+@media (max-width:640px){
+  .legend{flex-wrap:wrap}
+  .bar-row{grid-template-columns:1fr 58px 62px 62px; gap:7px}
+  .bar-row > :nth-child(2){display:none}
+  .tr-row{grid-template-columns:1fr 52px 46px 60px 46px; gap:7px}
+  .tr-row > :nth-child(2){display:none}
+  .top-row{grid-template-columns:16px 1fr 62px 62px; gap:7px}
+  .top-row > :last-child{display:none}
+  .pop{max-width:calc(100vw - 20px)}
+}
 @media (max-width:460px){
+  .wrap{padding-inline:16px}
+  .top-in{padding:9px 16px}
   .kpis{grid-template-columns:1fr}
-  .bar-row{grid-template-columns:88px 1fr 74px; gap:9px}
   .kpi-v{font-size:24px}
+  .card{padding:13px 13px 15px}
+  .bar-row{grid-template-columns:1fr 52px 54px 54px; gap:5px}
+  .tr-row{grid-template-columns:1fr 44px 40px 54px 40px; gap:5px}
+  .top-row{grid-template-columns:14px 1fr 56px 56px; gap:5px}
+  .tr-row em, .bar-name em{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 </style>
