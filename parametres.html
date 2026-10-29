@@ -1,0 +1,624 @@
+<title>Paramètres</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Page d'administration du dashboard Orixa : inventaire des classeurs
+   sources, groupés par domaine, avec l'état du rafraîchissement en tête.
+   Charte reprise à l'identique des pages Activité et Marge brute. */
+:root{
+  color-scheme: dark;
+  --bg:#0f1117;
+  --card:#1a1d27;
+  --card-2:#222636;
+  --line:rgba(255,255,255,.08);
+  --line-2:rgba(255,255,255,.14);
+  --txt:#e8eaf0;
+  --txt-2:#9aa0b4;
+  --txt-3:#6b7280;
+  --accent:#6366f1;
+  --accent-soft:rgba(99,102,241,.38);
+  --good:#10b981;
+  --bad:#ef4444;
+  --warn:#eab308;
+  --e-om:#7fa6ff; --e-fc:#8e51ff; --e-vp:#005fe6;
+  /* palette catégorielle validée, reprise de la page Marge brute :
+     une teinte par domaine de sources, jamais deux voisines sur la page */
+  --p1:#4f8ad5; --p2:#c66848; --p3:#379b7f; --p4:#ba892c;
+  --p5:#c3628b; --p6:#25872c; --p7:#8f89d8;
+  --entete:62px;
+  --f-ui: "DM Sans", ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font-family:var(--f-ui); font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased; display:flex; min-height:100vh;
+}
+
+/* ---------- barre latérale ---------- */
+.sidebar{width:238px; min-width:238px; background:var(--card); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; position:fixed; top:0; left:0; height:100vh; z-index:30}
+.sidebar-logo{height:var(--entete); flex:0 0 auto; display:flex; align-items:center;
+  padding:0 1.2rem; border-bottom:1px solid var(--line)}
+.sidebar-nav{display:flex; flex-direction:column; gap:4px; padding:1rem .8rem; flex:1}
+.nav-btn{padding:10px 13px; border-radius:8px; border:1px solid transparent; background:transparent;
+  color:var(--txt-3); font-size:13px; font-family:inherit; cursor:pointer; font-weight:500;
+  text-align:left; width:100%; display:flex; align-items:center; gap:10px;
+  text-decoration:none; transition:all .15s}
+.nav-btn svg{width:16px; height:16px; flex:0 0 auto; fill:none; stroke:currentColor;
+  stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; opacity:.85}
+.nav-btn.active svg{opacity:1}
+.nav-btn:hover{color:var(--txt); background:var(--card-2)}
+.nav-btn.active{border-color:rgba(99,102,241,.3); color:#fff; background:rgba(99,102,241,.15)}
+/* « Paramètres » est un groupe, pas une page : il ouvre ses entrées plutôt que
+   d'afficher un écran. Le filet vertical rattache les enfants au parent. */
+.spacer{flex:1}
+.nav-groupe{display:flex; flex-direction:column; gap:4px}
+.nav-parent{color:var(--txt-2)}
+.nav-parent .chev{margin-left:auto; width:13px; height:13px; opacity:.7; transition:transform .15s}
+.nav-parent[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+.sous-menu{display:flex; flex-direction:column; gap:2px;
+  margin-left:13px; padding-left:11px; border-left:1px solid var(--line-2)}
+.nav-btn.sous{font-size:12.5px; padding:8px 11px}
+.sidebar-footer{padding:1rem .8rem; border-top:1px solid var(--line)}
+.user-info{display:flex; align-items:center; gap:8px; margin-bottom:8px}
+.user-avatar{width:26px; height:26px; border-radius:50%; background:var(--card-2);
+  border:1px solid var(--line); flex-shrink:0}
+.user-name{font-size:11px; color:var(--txt-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.btn-logout{padding:5px 10px; border-radius:6px; border:1px solid var(--line); background:transparent;
+  color:var(--txt-3); font-size:11px; cursor:pointer; font-family:inherit; width:100%; text-align:center}
+.btn-logout:hover{border-color:var(--bad); color:var(--bad)}
+
+.main{margin-left:238px; flex:1; min-width:0}
+.top{position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+  background:rgba(15,17,23,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+.top-in{min-height:calc(var(--entete) - 1px); display:flex; align-items:center; gap:14px;
+  padding-block:9px;
+  padding-left:max(2rem, env(safe-area-inset-left,0px));
+  padding-right:max(2rem, env(safe-area-inset-right,0px))}
+.top-t{font-size:15px; font-weight:600}
+.top-s{font-size:12px; color:var(--txt-3)}
+.wrap{padding-block:0 48px;
+  padding-left:max(2rem, env(safe-area-inset-left,0px));
+  padding-right:max(2rem, env(safe-area-inset-right,0px))}
+
+/* ---------- bandeau d'état ---------- */
+.etat{background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:16px 18px; margin-top:22px; display:flex; flex-wrap:wrap; gap:14px 34px; align-items:center}
+.etat-bloc{display:flex; flex-direction:column; gap:3px; min-width:0}
+.etat-l{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--txt-3); font-weight:500}
+.etat-v{font-size:16px; font-weight:600; font-variant-numeric:tabular-nums}
+.etat-v small{font-size:12px; font-weight:400; color:var(--txt-3); margin-left:6px}
+.puce{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:7px; vertical-align:1px}
+.ok{background:var(--good)} .ko{background:var(--bad)}
+.etat-sep{flex:1}
+.note{font-size:11.5px; color:var(--txt-3); font-style:italic; margin:14px 0 0}
+
+/* ---------- sections de sources ---------- */
+.sec{margin-top:26px}
+.sec-h{display:flex; align-items:baseline; gap:10px; margin-bottom:9px}
+.sec-t{font-size:11px; letter-spacing:.11em; text-transform:uppercase; color:var(--txt-2); font-weight:500}
+.sec-n{font-size:11px; color:var(--txt-3); font-variant-numeric:tabular-nums}
+.liste{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.src{display:grid; grid-template-columns:1fr 150px 128px 92px; align-items:center;
+  gap:14px; padding:11px 16px; border-top:1px solid var(--line)}
+.src:first-child{border-top:0}
+.src:hover{background:var(--card-2)}
+.src-n{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.src-n i{font-style:normal; display:inline-block; width:7px; height:7px; border-radius:2px;
+  margin-right:9px; vertical-align:1px; background:var(--puce,var(--txt-3))}
+.liste{--puce:var(--txt-3)}
+.liste[data-cat="prev"]{--puce:var(--p1)}
+.liste[data-cat="mb"]{--puce:var(--p3)}
+.liste[data-cat="ref"]{--puce:var(--p7)}
+.liste[data-cat="ms"]{--puce:var(--p5)}
+.liste[data-cat="hors"]{--puce:var(--p2)}
+.thead span:first-child{padding-left:16px}
+.src-d{font-size:12px; color:var(--txt-2); font-variant-numeric:tabular-nums;
+  min-width:0; white-space:nowrap}
+.src-d.ancien{color:var(--warn)}
+.src-d.muet{color:var(--txt-3)}
+.src-m{font-size:12px; color:var(--txt-2); font-variant-numeric:tabular-nums; text-align:right}
+.src-m b{color:var(--txt); font-weight:500}
+.src-m.vide{color:var(--warn)}
+.ouvrir{justify-self:end; display:inline-flex; align-items:center; gap:6px; padding:5px 11px;
+  border:1px solid var(--line-2); border-radius:6px; background:transparent; color:var(--txt-2);
+  font-size:11.5px; font-family:inherit; text-decoration:none; cursor:pointer; white-space:nowrap}
+.ouvrir:hover{color:var(--txt); border-color:var(--accent); background:rgba(99,102,241,.1)}
+.ouvrir svg{width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round}
+.thead{padding-top:4px; padding-bottom:5px; background:transparent}
+.thead span{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--txt-3); font-weight:500}
+.thead .src-m{text-align:right}
+
+@media (max-width:1100px){ .src{grid-template-columns:1fr 112px 96px 80px} }
+@media (max-width:900px){
+  body{display:block}
+  .nav-groupe, .sous-menu{display:contents}
+  .chev, .spacer{display:none}
+  .sous-menu{margin-left:0; padding-left:0; border-left:0}
+  .sidebar{position:static; width:auto; min-width:0; height:auto; flex-direction:row;
+    align-items:center; gap:10px; border-right:0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .sidebar-logo{border-bottom:0; height:auto; padding:.6rem 1rem}
+  .sidebar-nav{flex-direction:row; flex-wrap:wrap; padding:.5rem .8rem; gap:6px; flex:1 1 auto}
+  .nav-btn{width:auto; padding:7px 11px; font-size:12.5px; gap:7px}
+  .sidebar-footer{display:none}
+  .main{margin-left:0}
+}
+@media (max-width:640px){
+  .src{grid-template-columns:1fr auto; gap:6px 12px; padding:12px 14px}
+  .src-d{grid-column:1; font-size:11px}
+  .src-m{grid-column:2; grid-row:1; text-align:right}
+  .ouvrir{grid-column:2; grid-row:2}
+  .thead{display:none}
+  .etat{gap:12px 22px}
+}
+.vide-etat{background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:22px 20px; margin-top:22px; color:var(--txt-2); font-size:13px}
+.vide-etat b{display:block; color:var(--txt); font-size:14px; margin-bottom:6px}
+.vide-etat code{font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--txt-3);
+  display:block; margin-top:10px; white-space:pre-wrap; word-break:break-word}
+.src-m.attente{color:var(--txt-3)}
+#btnCompter[disabled]{opacity:.5; cursor:default}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <img src="logo.png" alt="Orixa Groupe" style="height:32px;width:auto;opacity:.95">
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-btn" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      Activité
+    </a>
+    <a class="nav-btn" href="marge-brute.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      Marge brute
+    </a>
+    <a class="nav-btn" href="historique.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+      Historique P&amp;L
+    </a>
+
+    <div class="spacer"></div>
+
+    <div class="nav-groupe">
+      <button class="nav-btn nav-parent" type="button" id="btnParam"
+              aria-expanded="true" aria-controls="sousParam">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Paramètres
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="sous-menu" id="sousParam">
+        <a class="nav-btn sous active" href="#">Mise à jour des tables</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <img id="uAvatar" class="user-avatar" alt="">
+      <span id="uName" class="user-name">Michaël Courtaillier</span>
+    </div>
+    <button class="btn-logout" type="button" onclick="logout()">Déconnexion</button>
+  </div>
+</div>
+
+<div class="main">
+  <header class="top">
+    <div class="top-in">
+      <span class="top-t">Mise à jour des tables manuelles</span>
+      <span class="top-s" id="topS">chargement…</span>
+      <span class="etat-sep"></span>
+      <button class="ouvrir" type="button" id="btnCompter" hidden>
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Compter les lignes</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="etat" id="etat" hidden>
+      <div class="etat-bloc">
+        <span class="etat-l">Dernier rafraîchissement</span>
+        <span class="etat-v" id="vMaj">—</span>
+      </div>
+      <div class="etat-bloc">
+        <span class="etat-l">Tables rafraîchies</span>
+        <span class="etat-v" id="vTables">—</span>
+      </div>
+      <div class="etat-bloc">
+        <span class="etat-l">Classeurs sources</span>
+        <span class="etat-v" id="vSources">—</span>
+      </div>
+      <div class="etat-sep"></div>
+    </section>
+
+    <div id="message"></div>
+    <div id="sections"></div>
+
+    <p class="note" id="pied" hidden>Une modification faite dans un classeur apparaît sur le
+      dashboard au passage suivant de la requête planifiée. Le contrôle de lecture vérifie ses
+      sources avant d’écrire quoi que ce soit : si l’une d’elles est illisible, aucune table n’est
+      remplacée et les chiffres restent cohérents sur le passage précédent.</p>
+
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   Page d'administration : inventaire des classeurs qui alimentent le
+   dashboard, leur date de dernière modification et le lien pour les ouvrir.
+
+   Deux principes gouvernent ce fichier.
+
+   1. Aucune adresse de classeur n'y est écrite. Elles sont lues dans
+      INFORMATION_SCHEMA.TABLE_OPTIONS au chargement, avec le jeton de
+      l'utilisateur connecté. Le dépôt peut donc rester public.
+
+   2. Aucune adresse e-mail n'y est écrite non plus. L'habilitation est
+      portée par la table Admin.Acces_parametres, comparée à SESSION_USER(),
+      que BigQuery résout côté serveur et qu'un navigateur ne peut pas
+      falsifier. La page part fermée et ne s'ouvre que sur un oui explicite.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const P  = 'db-finances-496809';
+const DS = ['ACE_holding','ACE_structure','Clients','Depenses_marketing','Ebitda',
+            'Historique_BP','Marge_brute','Masse_salariale','Produits'];
+
+/* ---- jeton Google, partagé avec les autres pages du dashboard ---- */
+const TOKEN_TTL = 3500 * 1000;
+let token = null;
+function loadToken(){
+  let tok, ts;
+  try { tok = localStorage.getItem('bq_token');
+        ts = parseInt(localStorage.getItem('bq_token_ts') || '0'); } catch(e) {}
+  return (tok && (Date.now() - ts) < TOKEN_TTL) ? tok : null;
+}
+function clearToken(){
+  try { localStorage.removeItem('bq_token'); localStorage.removeItem('bq_token_ts'); } catch(e) {}
+}
+function logout(){ clearToken(); window.location.href = 'index.html'; }
+
+async function bqQuery(token, sql){
+  const r = await fetch('https://bigquery.googleapis.com/bigquery/v2/projects/'
+      + P + '/queries', {
+    method:'POST',
+    headers:{Authorization:'Bearer ' + token, 'Content-Type':'application/json'},
+    body: JSON.stringify({query: sql, useLegacySql:false, timeoutMs:60000})
+  });
+  if (!r.ok){
+    const e = await r.json().catch(() => ({}));
+    throw new Error('BQ ' + r.status + ' : ' + ((e.error && e.error.message) || r.statusText));
+  }
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  if (d.jobComplete === false) throw new Error('Requête BigQuery non terminée dans le délai imparti.');
+  if (!d.rows) return [];
+  const champs = d.schema.fields.map(f => f.name);
+  return d.rows.map(l => { const o = {}; l.f.forEach((c,i) => o[champs[i]] = c.v); return o; });
+}
+
+/* ═══════════════════════════ REQUÊTES ═══════════════════════════ */
+
+const Q_HAB =
+  'SELECT COUNT(*) > 0 AS ok '
++ 'FROM `' + P + '.Admin.Acces_parametres` '
++ 'WHERE LOWER(email) = LOWER(SESSION_USER())';
+
+/* TABLE_OPTIONS doit être interrogé dataset par dataset : la vue projet
+   region-eu demande des droits que nous n'avons pas. */
+const Q_INV =
+  'WITH opt AS (' + DS.map(d =>
+      "SELECT '" + d + "' AS dataset, table_name,"
+    + " MAX(IF(option_name = 'uris', option_value, NULL)) AS classeur,"
+    + " MAX(IF(option_name = 'sheet_range', option_value, NULL)) AS onglet"
+    + ' FROM `' + P + '.' + d + '`.INFORMATION_SCHEMA.TABLE_OPTIONS GROUP BY 1, 2'
+    ).join(' UNION ALL ')
++ ') SELECT dataset, table_name, onglet, classeur FROM opt'
++ ' WHERE classeur IS NOT NULL ORDER BY dataset, table_name';
+
+const Q_MAJ =
+  'SELECT MAX(ts) AS maj, COUNT(*) AS n FROM (' + DS.map(d =>
+      'SELECT last_modified_time AS ts FROM `' + P + '.' + d + '.__TABLES__`'
+    + " WHERE ENDS_WITH(table_id, '_mat')"
+    ).join(' UNION ALL ') + ')';
+
+/* ═══════════════════════ LIBELLÉS ET SECTIONS ═══════════════════════
+   Le nom technique d'une table ne se lit pas. Cette table de correspondance
+   donne à chacune son libellé et sa section. Toute table absente d'ici
+   apparaît malgré tout, en bas, sous « Sources non classées » : une source
+   ajoutée demain doit se voir, pas disparaître. */
+
+const SECTIONS = [
+  {id:'prev', cat:'prev', titre:'Prévisions commerciales · Orixa Media', seuil:30},
+  {id:'mb',   cat:'mb',   titre:'Marge brute · réalisé, prévisions et objectifs', seuil:10},
+  {id:'ref',  cat:'ref',  titre:'Référentiels · clients et produits', seuil:60},
+  {id:'ms',   cat:'ms',   titre:'Masse salariale', seuil:20},
+  {id:'hors', cat:'hors', titre:'Holding, structure, marketing et EBITDA', seuil:20},
+  {id:'bp',   cat:'bp',   titre:'Historique P&L', seuil:365},
+  {id:'autre',cat:'autre',titre:'Sources non classées', seuil:30}
+];
+
+const LIB = {
+  MB_Previsions_Orixa_Media_Alban:               ['prev','AS — Alban'],
+  MB_Previsions_Orixa_Media_Alice:               ['prev','AS — Alice'],
+  MB_Previsions_Orixa_Media_Alto_autres_clients: ['prev','AS — Alto autres clients'],
+  MB_Previsions_Orixa_Media_Benjamin_M:          ['prev','AS — Benjamin M'],
+  MB_Previsions_Orixa_Media_Benjamin_R:          ['prev','AS — Benjamin R'],
+  MB_Previsions_Orixa_Media_Eva:                 ['prev','AS — Eva'],
+  MB_Previsions_Orixa_Media_Hugo_L:              ['prev','AS — Hugo L'],
+
+  MB_Realisee_Orixa_media:          ['mb','Réalisé — Orixa Media'],
+  MB_Realisee_Visiperf:             ['mb','Réalisé — Visiperf'],
+  MB_Realisee_Feedcast:             ['mb','Réalisé — Feedcast'],
+  MB_Previsions_Visiperf:           ['mb','Prévisions — Visiperf'],
+  MB_Previsions_Feedcast:           ['mb','Prévisions — Feedcast'],
+  MB_Objectifs_Orixa_Media:         ['mb','Objectifs par pôle — Orixa Media'],
+  MB_Objectifs_Secteur_Orixa_Media: ['mb','Objectifs par secteur — Orixa Media'],
+  MB_Objectifs_Visiperf:            ['mb','Objectifs — Visiperf'],
+  MB_Objectifs_Feedcast:            ['mb','Objectifs — Feedcast'],
+
+  Clients_Orixa_Media:  ['ref','Clients — Orixa Media'],
+  Comptes_Orixa_Media:  ['ref','Comptes commerciaux — Orixa Media'],
+  Produits_Poles:       ['ref','Référentiel produits et pôles'],
+
+  MS_salarie_all:                 ['ms','Salariés — référentiel'],
+  MS_repartition_all:             ['ms','Répartition par entité'],
+  MS_brut_contractuel:            ['ms','Brut contractuel'],
+  MS_realisee_fixe:               ['ms','Réalisé — fixe'],
+  MS_realisee_fixe_stc:           ['ms','Réalisé — fixe STC'],
+  MS_realisee_primes:             ['ms','Réalisé — primes'],
+  MS_realisee_stc:                ['ms','Réalisé — STC'],
+  MS_freelance:                   ['ms','Freelances'],
+  MS_prevision_embauche:          ['ms','Prévisions — embauches'],
+  MS_previsions_primes:           ['ms','Prévisions — primes'],
+  MS_previsions_STC:              ['ms','Prévisions — STC'],
+  MS_previsions_conges_maternite: ['ms','Prévisions — congés maternité'],
+
+  ACE_holding_realise:           ['hors','ACE holding — réalisé'],
+  ACE_holding_previsions:        ['hors','ACE holding — prévisions'],
+  ACE_structure_realise:         ['hors','ACE structure — réalisé'],
+  ACE_structure_previsions:      ['hors','ACE structure — prévisions'],
+  Depenses_marketing_realise:    ['hors','Dépenses marketing — réalisé'],
+  Depenses_marketing_previsions: ['hors','Dépenses marketing — prévisions'],
+  Ebitda_objectifs_mensuel:      ['hors','Objectifs EBITDA mensuels'],
+
+  Historique_BP_Orixa:       ['bp','Historique BP — Orixa groupe'],
+  Historique_BP_Orixa_Media: ['bp','Historique BP — Orixa Media'],
+  Historique_BP_Visiperf:    ['bp','Historique BP — Visiperf']
+};
+
+/* ═══════════════════════════ OUTILS ═══════════════════════════ */
+
+const ID_SQL = /^[A-Za-z0-9_]+$/;
+const nf = new Intl.NumberFormat('fr-FR');
+
+/* uris arrive sous la forme ["https://…"] et sheet_range sous la forme
+   "Onglet!A1:E", guillemets compris. */
+function adresse(v){
+  try { const t = JSON.parse(v); return Array.isArray(t) ? t[0] : String(t); }
+  catch(e){ return String(v || '').replace(/^"|"$/g, ''); }
+}
+const plage    = v => String(v || '').replace(/^"|"$/g, '');
+const fichier  = u => (String(u).match(/\/d\/([A-Za-z0-9_-]+)/) || [,''])[1];
+const echappe  = s => String(s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const jours = d => Math.floor((Date.now() - d.getTime()) / 86400000);
+const dateFr = d => d.toLocaleDateString('fr-FR',
+  {day:'2-digit', month:'2-digit', year:'numeric'});
+
+function depuis(ms){
+  const m = Math.floor((Date.now() - ms) / 60000);
+  if (m < 60)   return 'il y a ' + m + ' min';
+  if (m < 1440) return 'il y a ' + Math.floor(m / 60) + ' h';
+  return 'il y a ' + Math.floor(m / 1440) + ' j';
+}
+
+const ICONE = '<svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2'
+            + ' 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg>';
+
+function panneau(titre, texte, detail){
+  document.getElementById('message').innerHTML =
+    '<div class="vide-etat"><b>' + echappe(titre) + '</b>' + echappe(texte)
+    + (detail ? '<code>' + echappe(detail) + '</code>' : '') + '</div>';
+}
+
+/* ═══════════════════════════ AFFICHAGE ═══════════════════════════ */
+
+let SOURCES = [];
+
+function render(){
+  const parSection = {};
+  SOURCES.forEach(s => (parSection[s.section] = parSection[s.section] || []).push(s));
+
+  const html = SECTIONS.filter(sec => (parSection[sec.id] || []).length).map(sec => {
+    const lignes = parSection[sec.id];
+    return '<section class="sec"><div class="sec-h">'
+      + '<span class="sec-t">' + echappe(sec.titre) + '</span>'
+      + '<span class="sec-n">' + lignes.length + ' classeur'
+      + (lignes.length > 1 ? 's' : '') + '</span></div>'
+      + '<div class="liste" data-cat="' + sec.cat + '">'
+      + '<div class="src thead"><span>Classeur</span><span>Dernière modification</span>'
+      + '<span class="src-m">Lignes</span><span></span></div>'
+      + lignes.map(s => ligne(s, sec.seuil)).join('')
+      + '</div></section>';
+  }).join('');
+
+  document.getElementById('sections').innerHTML = html;
+}
+
+function ligne(s, seuil){
+  let d = '<span class="src-d muet">—</span>';
+  if (s.modif){
+    const dt = new Date(s.modif);
+    d = '<span class="src-d' + (jours(dt) > seuil ? ' ancien' : '') + '" title="'
+      + echappe(s.par ? 'dernière modification : ' + s.par : '') + '">'
+      + dateFr(dt) + '</span>';
+  }
+  const n = (s.lignes === undefined)
+    ? '<div class="src-m attente">—</div>'
+    : '<div class="src-m' + (s.lignes ? '' : ' vide') + '">'
+      + (s.lignes ? '<b>' + nf.format(s.lignes) + '</b>' : 'aucune saisie') + '</div>';
+
+  return '<div class="src" data-cle="' + echappe(s.cle) + '">'
+    + '<div class="src-n" title="' + echappe(s.dataset + '.' + s.table + '  ·  ' + s.onglet)
+    + '"><i></i>' + echappe(s.libelle) + '</div>'
+    + d + n
+    + '<a class="ouvrir" href="' + echappe(s.url) + '" target="_blank" rel="noopener">'
+    + ICONE + 'Ouvrir</a></div>';
+}
+
+/* ═══════════════════════════ DATES DRIVE ═══════════════════════════
+   Un classeur peut porter plusieurs tables : on n'interroge Drive qu'une
+   fois par fichier. Si le jeton ne porte pas le périmètre Drive, les appels
+   échouent et la colonne reste vide — la page ne tombe pas pour autant. */
+
+async function datesDrive(tok){
+  const ids = [...new Set(SOURCES.map(s => s.fichier).filter(Boolean))];
+  const vus = {};
+  await Promise.all(ids.map(async id => {
+    try {
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id
+        + '?fields=modifiedTime,lastModifyingUser(displayName)',
+        {headers:{Authorization:'Bearer ' + tok}});
+      if (!r.ok) return;
+      const j = await r.json();
+      vus[id] = {modif: j.modifiedTime,
+                 par: j.lastModifyingUser && j.lastModifyingUser.displayName};
+    } catch(e){ /* un classeur injoignable laisse sa ligne sans date */ }
+  }));
+  SOURCES.forEach(s => {
+    const v = vus[s.fichier];
+    if (v){ s.modif = v.modif; s.par = v.par; }
+  });
+  return Object.keys(vus).length;
+}
+
+/* ═══════════════════════ COMPTAGE À LA DEMANDE ═══════════════════════
+   Compter les lignes oblige à lire les 37 classeurs : c'est la charge qui
+   sature l'API Sheets quand elle se répète. On ne le fait donc que sur
+   demande explicite, jamais au chargement. */
+
+async function compter(tok){
+  const b = document.getElementById('btnCompter');
+  b.disabled = true; b.textContent = 'Comptage…';
+  try {
+    const sûres = SOURCES.filter(s => ID_SQL.test(s.dataset) && ID_SQL.test(s.table));
+    const sql = sûres.map(s =>
+      "SELECT '" + s.cle + "' AS cle, COUNT(*) AS n FROM `"
+      + P + '.' + s.dataset + '.' + s.table + '`').join(' UNION ALL ');
+    const r = await bqQuery(tok, sql);
+    const m = {}; r.forEach(x => m[x.cle] = Number(x.n));
+    SOURCES.forEach(s => s.lignes = m[s.cle] !== undefined ? m[s.cle] : 0);
+    render();
+    b.hidden = true;
+  } catch(e){
+    b.disabled = false;
+    b.innerHTML = ICONE + 'Compter les lignes';
+    alert('Comptage interrompu :\n\n' + ((e && e.message) || e));
+  }
+}
+
+/* ═══════════════════════════ CHARGEMENT ═══════════════════════════ */
+
+async function charger(tok){
+  /* 1. habilitation — la page part fermée */
+  let habilite = false, motif = '';
+  try {
+    const r = await bqQuery(tok, Q_HAB);
+    habilite = r.length && (r[0].ok === true || r[0].ok === 'true');
+  } catch(e){ motif = (e && e.message) || String(e); }
+
+  if (!habilite){
+    document.getElementById('topS').textContent = 'accès réservé';
+    panneau('Accès non habilité',
+      "Cette page est réservée aux personnes inscrites dans la table d'habilitation. "
+      + 'Si vous devez y accéder, faites ajouter votre adresse à '
+      + 'Admin.Acces_parametres et vous donner le rôle BigQuery Data Viewer sur ce dataset.',
+      motif);
+    return;
+  }
+
+  /* 2. inventaire des sources */
+  const inv = await bqQuery(tok, Q_INV);
+  SOURCES = inv.map(r => {
+    const url = adresse(r.classeur);
+    const l   = LIB[r.table_name] || ['autre', r.table_name];
+    return {cle: r.dataset + '.' + r.table_name,
+            dataset: r.dataset, table: r.table_name,
+            section: l[0], libelle: l[1],
+            onglet: plage(r.onglet) || '(premier onglet)',
+            url, fichier: fichier(url)};
+  });
+
+  const nbFichiers = new Set(SOURCES.map(s => s.fichier)).size;
+  document.getElementById('topS').textContent =
+    nbFichiers + ' classeurs alimentent le dashboard';
+  document.getElementById('vSources').innerHTML =
+    nbFichiers + '<small>' + SOURCES.length + ' tables externes</small>';
+  render();
+  document.getElementById('etat').hidden = false;
+  document.getElementById('pied').hidden = false;
+  document.getElementById('btnCompter').hidden = false;
+
+  /* 3. fraîcheur des tables matérialisées */
+  try {
+    const m = await bqQuery(tok, Q_MAJ);
+    if (m.length && m[0].maj){
+      const ms = Number(m[0].maj);
+      const d  = new Date(ms);
+      document.getElementById('vMaj').innerHTML =
+        '<i class="puce ' + (Date.now() - ms < 6*3600*1000 ? 'ok' : 'ko') + '"></i>'
+        + depuis(ms) + '<small>' + dateFr(d) + ' à '
+        + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) + '</small>';
+      document.getElementById('vTables').innerHTML =
+        m[0].n + '<small>tables matérialisées</small>';
+    }
+  } catch(e){ /* la fraîcheur est un confort, pas une condition */ }
+
+  /* 4. dates Drive, après affichage */
+  const n = await datesDrive(tok);
+  if (n) render();
+  else panneau('Dates de modification indisponibles',
+    'Votre connexion Google ne porte pas le droit de lecture des métadonnées Drive. '
+    + "Le reste de la page fonctionne ; les dates apparaîtront une fois le périmètre "
+    + 'drive.metadata.readonly ajouté à la page de connexion et la session renouvelée.');
+}
+
+/* ═══════════════════ MENU ET DÉMARRAGE ═══════════════════ */
+
+const btnParam  = document.getElementById('btnParam');
+const sousParam = document.getElementById('sousParam');
+btnParam.addEventListener('click', () => {
+  const ouvert = btnParam.getAttribute('aria-expanded') === 'true';
+  btnParam.setAttribute('aria-expanded', String(!ouvert));
+  sousParam.hidden = ouvert;
+});
+
+async function init(){
+  const tok = loadToken();
+  if (!tok){ window.location.href = 'index.html'; return; }
+  token = tok;
+  document.getElementById('btnCompter').addEventListener('click', () => compter(tok));
+  try {
+    const u = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+      {headers:{Authorization:'Bearer ' + tok}}).then(r => r.json());
+    if (u.error) throw new Error(u.error.message);
+    document.getElementById('uName').textContent = u.name || u.email || '';
+    if (u.picture) document.getElementById('uAvatar').src = u.picture;
+    await charger(tok);
+  } catch(e){
+    const msg = String((e && e.message) || e);
+    if (/401|UNAUTHENTICATED|invalid[_ ]token|Invalid Credentials/i.test(msg)){
+      clearToken(); window.location.href = 'index.html';
+    } else {
+      document.getElementById('topS').textContent = 'chargement interrompu';
+      panneau('Chargement interrompu',
+        'Votre session reste ouverte. Rechargez la page pour réessayer.', msg);
+    }
+  }
+}
+
+init();
+</script>
