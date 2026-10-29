@@ -417,7 +417,7 @@ body{
       </div>
     </section>
 
-
+    <p class="note" id="kpiNote" hidden></p>
     <div class="grid">
 
       <section class="card">
@@ -1140,6 +1140,12 @@ const somme = o => o ? Object.values(o).reduce((t,v) => t + v, 0) : null;
 /* objectif annuel du secteur i (0 Alto, 1 Origine), null s'il n'est pas saisi */
 const objSect = (a, i) => ((D.objSect || {})[a] || [])[i] || null;
 
+const horsSecteur = a => {
+  const d = D.annees[a];
+  if (!d || !D.mix[a]) return 0;
+  return Math.max(0, (d.reel + d.prev) - (totSect(a,0) + totSect(a,1)));
+};
+   
 const totSect = (a, i) => !D.mix[a] ? null
   : POLES.reduce((s,[n]) => s + (D.mix[a][n] ? D.mix[a][n][i] : 0), 0);
 
@@ -1181,7 +1187,16 @@ function kpis(){
   };
   secteur('kOriV', 'kOriRows', 1);
   secteur('kAltV', 'kAltRows', 0);
+  const hors = horsSecteur(annee);
+  const note = document.getElementById('kpiNote');
+  note.hidden = hors < 1000;
+  if (!note.hidden)
+    note.textContent = 'Alto et Origine totalisent ' + keur(att - hors)
+      + ' : ' + keur(hors) + ' de marge attendue ne portent pas de secteur, '
+      + 'faute de pôle renseigné sur les lignes de prévision. Ces montants '
+      + 'comptent dans la marge brute attendue mais pas dans la ventilation.';
 
+   
 }
 
 /* ---- fraîcheur de la donnée ----
@@ -1374,8 +1389,10 @@ function matrice(){
     const avecObj = i === 2;          // le détail par pôle n'existe que sur l'ensemble
     const som = prec ? POLES.reduce((s,[n]) => s + pre(n,i), 0) : null;
     const dTot = som === null ? null : total - som;
-    const objTot = avecObj ? POLES.reduce((s,[n]) => s + (D.poles[annee][n]?.o || 0), 0) : 0;
-    const dObj = avecObj ? total - objTot : (objSec ? total - objSec : null);
+        const objTot = avecObj && horsSecteur(annee) < 1000
+      ? POLES.reduce((s,[n]) => s + (D.poles[annee][n]?.o || 0), 0) : 0;
+    const dObj = avecObj ? (objTot ? total - objTot : null)
+                         : (objSec ? total - objSec : null);
 
     const rows = ordre
       .map(n => ({
@@ -1410,8 +1427,12 @@ function matrice(){
     panneau('Alto', 0, tA, 'alto') +
     panneau('Origine', 1, tO, 'ori');
 
+    const hors = horsSecteur(annee), attTot = (D.annees[annee].reel + D.annees[annee].prev);
   document.getElementById('mixSub').textContent =
-    cadrage() + ' · la barre de fond donne le poids du pôle dans son bloc';
+    cadrage() + (hors >= 1000
+      ? ' · ' + keur(attTot - hors) + ' ventilés sur ' + keur(attTot) + ' attendus'
+      : '')
+    + ' · la barre de fond donne le poids du pôle dans son bloc';
 
   document.getElementById('mixNote').textContent =
       'Les objectifs par secteur sont fixés à l’année, ceux par pôle au mois : '
