@@ -39,6 +39,19 @@
   /* ordre d'affichage, qui sert aussi à choisir la page de repli */
   const ORDRE = ['activite', 'marge_brute', 'historique', 'parametres'];
 
+  /* Pages logées sous l'engrenage « Paramètres ». Le groupe s'affiche dès
+     qu'une seule d'entre elles est accordée, et chaque entrée se montre ou
+     se cache pour son propre compte.
+
+     POUR AJOUTER UNE PAGE SOUS PARAMÈTRES, quatre gestes :
+       1. une ligne dans CODE et dans FICHIER, et son code ici ;
+       2. sa place dans ORDRE ;
+       3. un <a class="nav-btn sous" href="…"> dans le sous-menu des
+          quatre barres latérales ;
+       4. les lignes correspondantes dans Admin.Acces.
+     Rien d'autre n'est à toucher. */
+  const SOUS = ['parametres'];
+
   function pageCourante() {
     const f = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     return CODE[f] || CODE[f + '.html'] || 'activite';
@@ -72,10 +85,12 @@
       if (!c) return;
       a.style.display = pages.indexOf(c) >= 0 ? '' : 'none';
     });
-    /* Paramètres n'est pas un lien mais un groupe repliable, poussé en bas
-       de la barre. Il se montre ou se cache d'un bloc. */
+    /* Le groupe « Paramètres » apparaît dès qu'une de ses entrées est
+       accordée ; ses entrées, elles, ont déjà été traitées ci-dessus
+       puisque ce sont des liens comme les autres. */
     const grp = document.getElementById('grpParam');
-    if (grp) grp.style.display = pages.indexOf('parametres') >= 0 ? '' : 'none';
+    if (grp) grp.style.display =
+      SOUS.some(c => pages.indexOf(c) >= 0) ? '' : 'none';
   }
 
   /* Le repli du groupe, identique sur les quatre pages. Le garde-fou évite
@@ -134,8 +149,8 @@
     if (pages.indexOf(ici) >= 0) {
       ajusterMenu(pages);
       brancherGroupe();
-      /* sur la page Paramètres elle-même, le groupe s'ouvre d'emblée */
-      if (ici === 'parametres') {
+      /* quand on est déjà dans la section, le groupe s'ouvre d'emblée */
+      if (SOUS.indexOf(ici) >= 0) {
         const b = document.getElementById('btnParam');
         const s = document.getElementById('sousParam');
         if (b && s) { b.setAttribute('aria-expanded', 'true'); s.hidden = false; }
