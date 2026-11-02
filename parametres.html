@@ -183,7 +183,7 @@ body{
 
     <div class="spacer"></div>
 
-    <div class="nav-groupe">
+    <div class="nav-groupe" id="grpParam">
       <button class="nav-btn nav-parent" type="button" id="btnParam"
               aria-expanded="true" aria-controls="sousParam">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -244,6 +244,7 @@ body{
   </div>
 </div>
 
+<script src="acces.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
    Page d'administration : inventaire des classeurs qui alimentent le
@@ -256,7 +257,7 @@ body{
       l'utilisateur connecté. Le dépôt peut donc rester public.
 
    2. Aucune adresse e-mail n'y est écrite non plus. L'habilitation est
-      portée par la table Admin.Acces_parametres, comparée à SESSION_USER(),
+      portée par la table Admin.Acces, lue par acces.js à travers la vue
       que BigQuery résout côté serveur et qu'un navigateur ne peut pas
       falsifier. La page part fermée et ne s'ouvre que sur un oui explicite.
    ═══════════════════════════════════════════════════════════════════════ */
@@ -299,11 +300,6 @@ async function bqQuery(token, sql){
 }
 
 /* ═══════════════════════════ REQUÊTES ═══════════════════════════ */
-
-const Q_HAB =
-  'SELECT COUNT(*) > 0 AS ok '
-+ 'FROM `' + P + '.Admin.Acces_parametres` '
-+ 'WHERE LOWER(email) = LOWER(SESSION_USER())';
 
 /* TABLE_OPTIONS doit être interrogé dataset par dataset : la vue projet
    region-eu demande des droits que nous n'avons pas. */
@@ -523,24 +519,10 @@ async function compter(tok){
 /* ═══════════════════════════ CHARGEMENT ═══════════════════════════ */
 
 async function charger(tok){
-  /* 1. habilitation — la page part fermée */
-  let habilite = false, motif = '';
-  try {
-    const r = await bqQuery(tok, Q_HAB);
-    habilite = r.length && (r[0].ok === true || r[0].ok === 'true');
-  } catch(e){ motif = (e && e.message) || String(e); }
+  /* L'habilitation a déjà été vérifiée par acces.js : arriver ici signifie
+     que la page est accordée. Il ne reste qu'à la remplir. */
 
-  if (!habilite){
-    document.getElementById('topS').textContent = 'accès réservé';
-    panneau('Accès non habilité',
-      "Cette page est réservée aux personnes inscrites dans la table d'habilitation. "
-      + 'Si vous devez y accéder, faites ajouter votre adresse à '
-      + 'Admin.Acces_parametres et vous donner le rôle BigQuery Data Viewer sur ce dataset.',
-      motif);
-    return;
-  }
-
-  /* 2. inventaire des sources */
+  /* 1. inventaire des sources */
   const inv = await bqQuery(tok, Q_INV);
   SOURCES = inv.map(r => {
     const url = adresse(r.classeur);
@@ -562,7 +544,7 @@ async function charger(tok){
   document.getElementById('pied').hidden = false;
   document.getElementById('btnCompter').hidden = false;
 
-  /* 3. fraîcheur des tables matérialisées */
+  /* 2. fraîcheur des tables matérialisées */
   try {
     const m = await bqQuery(tok, Q_MAJ);
     if (m.length && m[0].maj){
@@ -577,7 +559,7 @@ async function charger(tok){
     }
   } catch(e){ /* la fraîcheur est un confort, pas une condition */ }
 
-  /* 4. dates Drive, après affichage */
+  /* 3. dates Drive, après affichage */
   const n = await datesDrive(tok);
   if (n) render();
   else panneau('Dates de modification indisponibles',
@@ -588,13 +570,8 @@ async function charger(tok){
 
 /* ═══════════════════ MENU ET DÉMARRAGE ═══════════════════ */
 
-const btnParam  = document.getElementById('btnParam');
-const sousParam = document.getElementById('sousParam');
-btnParam.addEventListener('click', () => {
-  const ouvert = btnParam.getAttribute('aria-expanded') === 'true';
-  btnParam.setAttribute('aria-expanded', String(!ouvert));
-  sousParam.hidden = ouvert;
-});
+/* le repli du groupe « Paramètres » est géré par acces.js, commun aux
+   quatre pages. */
 
 async function init(){
   const tok = loadToken();
@@ -607,6 +584,7 @@ async function init(){
     if (u.error) throw new Error(u.error.message);
     document.getElementById('uName').textContent = u.name || u.email || '';
     if (u.picture) document.getElementById('uAvatar').src = u.picture;
+    if (!await controlerAcces(tok)) return;
     await charger(tok);
   } catch(e){
     const msg = String((e && e.message) || e);
