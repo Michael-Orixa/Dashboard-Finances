@@ -103,7 +103,7 @@ body{
 .sec-t{font-size:11px; letter-spacing:.11em; text-transform:uppercase; color:var(--txt-2); font-weight:500}
 .sec-n{font-size:11px; color:var(--txt-3); font-variant-numeric:tabular-nums}
 .liste{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden}
-.src{display:grid; grid-template-columns:1fr 150px 128px 92px; align-items:center;
+.src{display:grid; grid-template-columns:1fr 150px 92px; align-items:center;
   gap:14px; padding:11px 16px; border-top:1px solid var(--line)}
 .src:first-child{border-top:0}
 .src:hover{background:var(--card-2)}
@@ -121,9 +121,6 @@ body{
   min-width:0; white-space:nowrap}
 .src-d.ancien{color:var(--warn)}
 .src-d.muet{color:var(--txt-3)}
-.src-m{font-size:12px; color:var(--txt-2); font-variant-numeric:tabular-nums; text-align:right}
-.src-m b{color:var(--txt); font-weight:500}
-.src-m.vide{color:var(--warn)}
 .ouvrir{justify-self:end; display:inline-flex; align-items:center; gap:6px; padding:5px 11px;
   border:1px solid var(--line-2); border-radius:6px; background:transparent; color:var(--txt-2);
   font-size:11.5px; font-family:inherit; text-decoration:none; cursor:pointer; white-space:nowrap}
@@ -132,9 +129,8 @@ body{
   stroke-linecap:round; stroke-linejoin:round}
 .thead{padding-top:4px; padding-bottom:5px; background:transparent}
 .thead span{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--txt-3); font-weight:500}
-.thead .src-m{text-align:right}
 
-@media (max-width:1100px){ .src{grid-template-columns:1fr 112px 96px 80px} }
+@media (max-width:1100px){ .src{grid-template-columns:1fr 112px 80px} }
 @media (max-width:900px){
   body{display:block}
   .nav-groupe, .sous-menu{display:contents}
@@ -151,7 +147,6 @@ body{
 @media (max-width:640px){
   .src{grid-template-columns:1fr auto; gap:6px 12px; padding:12px 14px}
   .src-d{grid-column:1; font-size:11px}
-  .src-m{grid-column:2; grid-row:1; text-align:right}
   .ouvrir{grid-column:2; grid-row:2}
   .thead{display:none}
   .etat{gap:12px 22px}
@@ -161,8 +156,6 @@ body{
 .vide-etat b{display:block; color:var(--txt); font-size:14px; margin-bottom:6px}
 .vide-etat code{font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--txt-3);
   display:block; margin-top:10px; white-space:pre-wrap; word-break:break-word}
-.src-m.attente{color:var(--txt-3)}
-#btnCompter[disabled]{opacity:.5; cursor:default}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -213,9 +206,6 @@ body{
     <div class="top-in">
       <span class="top-t">Mise à jour des tables manuelles</span>
       <span class="top-s" id="topS">chargement…</span>
-      <span class="etat-sep"></span>
-      <button class="ouvrir" type="button" id="btnCompter" hidden>
-        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Compter les lignes</button>
     </div>
   </header>
 
@@ -389,9 +379,6 @@ const LIB = {
 
 /* ═══════════════════════════ OUTILS ═══════════════════════════ */
 
-const ID_SQL = /^[A-Za-z0-9_]+$/;
-const nf = new Intl.NumberFormat('fr-FR');
-
 /* uris arrive sous la forme ["https://…"] et sheet_range sous la forme
    "Onglet!A1:E", guillemets compris. */
 function adresse(v){
@@ -439,7 +426,7 @@ function render(){
       + (lignes.length > 1 ? 's' : '') + '</span></div>'
       + '<div class="liste" data-cat="' + sec.cat + '">'
       + '<div class="src thead"><span>Classeur</span><span>Dernière modification</span>'
-      + '<span class="src-m">Lignes</span><span></span></div>'
+      + '<span></span></div>'
       + lignes.map(s => ligne(s, sec.seuil)).join('')
       + '</div></section>';
   }).join('');
@@ -455,15 +442,10 @@ function ligne(s, seuil){
       + echappe(s.par ? 'dernière modification : ' + s.par : '') + '">'
       + dateFr(dt) + '</span>';
   }
-  const n = (s.lignes === undefined)
-    ? '<div class="src-m attente">—</div>'
-    : '<div class="src-m' + (s.lignes ? '' : ' vide') + '">'
-      + (s.lignes ? '<b>' + nf.format(s.lignes) + '</b>' : 'aucune saisie') + '</div>';
-
   return '<div class="src" data-cle="' + echappe(s.cle) + '">'
     + '<div class="src-n" title="' + echappe(s.dataset + '.' + s.table + '  ·  ' + s.onglet)
     + '"><i></i>' + echappe(s.libelle) + '</div>'
-    + d + n
+    + d
     + '<a class="ouvrir" href="' + echappe(s.url) + '" target="_blank" rel="noopener">'
     + ICONE + 'Ouvrir</a></div>';
 }
@@ -494,31 +476,6 @@ async function datesDrive(tok){
   return Object.keys(vus).length;
 }
 
-/* ═══════════════════════ COMPTAGE À LA DEMANDE ═══════════════════════
-   Compter les lignes oblige à lire les 37 classeurs : c'est la charge qui
-   sature l'API Sheets quand elle se répète. On ne le fait donc que sur
-   demande explicite, jamais au chargement. */
-
-async function compter(tok){
-  const b = document.getElementById('btnCompter');
-  b.disabled = true; b.textContent = 'Comptage…';
-  try {
-    const sûres = SOURCES.filter(s => ID_SQL.test(s.dataset) && ID_SQL.test(s.table));
-    const sql = sûres.map(s =>
-      "SELECT '" + s.cle + "' AS cle, COUNT(*) AS n FROM `"
-      + P + '.' + s.dataset + '.' + s.table + '`').join(' UNION ALL ');
-    const r = await bqQuery(tok, sql);
-    const m = {}; r.forEach(x => m[x.cle] = Number(x.n));
-    SOURCES.forEach(s => s.lignes = m[s.cle] !== undefined ? m[s.cle] : 0);
-    render();
-    b.hidden = true;
-  } catch(e){
-    b.disabled = false;
-    b.innerHTML = ICONE + 'Compter les lignes';
-    alert('Comptage interrompu :\n\n' + ((e && e.message) || e));
-  }
-}
-
 /* ═══════════════════════════ CHARGEMENT ═══════════════════════════ */
 
 async function charger(tok){
@@ -545,7 +502,6 @@ async function charger(tok){
   render();
   document.getElementById('etat').hidden = false;
   document.getElementById('pied').hidden = false;
-  document.getElementById('btnCompter').hidden = false;
 
   /* 2. fraîcheur des tables matérialisées */
   try {
@@ -580,7 +536,6 @@ async function init(){
   const tok = loadToken();
   if (!tok){ window.location.href = 'index.html'; return; }
   token = tok;
-  document.getElementById('btnCompter').addEventListener('click', () => compter(tok));
   try {
     const u = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
       {headers:{Authorization:'Bearer ' + tok}}).then(r => r.json());
