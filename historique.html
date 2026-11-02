@@ -18,6 +18,24 @@
   .nav-btn.active svg { opacity:1; }
   .nav-btn:hover { color:var(--text); background:var(--surface2); }
   .nav-btn.active { border-color:rgba(99,102,241,0.3); color:white; background:rgba(99,102,241,0.15); }
+/* groupe « Paramètres » : poussé en bas de la barre, replié par défaut.
+   Les couleurs sont écrites en clair plutôt qu'en variables, les trois
+   pages n'ayant pas les mêmes noms de tokens. */
+.spacer{flex:1}
+.nav-groupe{display:flex; flex-direction:column; gap:4px}
+.nav-parent .chev{margin-left:auto; width:13px; height:13px; opacity:.7; transition:transform .15s}
+.nav-parent[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+.sous-menu{display:flex; flex-direction:column; gap:2px;
+  margin-left:13px; padding-left:11px; border-left:1px solid rgba(255,255,255,.14)}
+.nav-btn.sous{font-size:12.5px; padding:8px 11px}
+/* sans cette règle, le display:flex ci-dessus l'emporte sur le display:none
+   que le navigateur applique à [hidden], et le sous-menu reste ouvert. */
+.sous-menu[hidden]{display:none}
+@media (max-width:900px){
+  .nav-groupe, .sous-menu{display:contents}
+  .chev, .spacer{display:none}
+  .sous-menu{margin-left:0; padding-left:0; border-left:0}
+}
   .sidebar-footer { padding:1rem 0.8rem; border-top:1px solid var(--border); }
   .user-info { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
   .user-name { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -73,6 +91,18 @@
             <a class="nav-btn" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg> Activité</a>
             <a class="nav-btn" href="marge-brute.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg> Marge brute</a>
         <a class="nav-btn active" href="historique.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg> Historique P&L</a>
+    <div class="spacer"></div>
+    <div class="nav-groupe" id="grpParam" style="display:none">
+      <button class="nav-btn nav-parent" type="button" id="btnParam"
+              aria-expanded="false" aria-controls="sousParam">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Paramètres
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="sous-menu" id="sousParam" hidden>
+        <a class="nav-btn sous" href="parametres.html">Mise à jour des tables</a>
+      </div>
+    </div>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -132,6 +162,7 @@
   </div>
 </div>
 
+<script src="acces.js"></script>
 <script>
 const CLIENT_ID = '510789614747-6n2tkok24lah8u59ma2f33kko6mhmbe7.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/bigquery.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly';
@@ -282,9 +313,7 @@ async function init() {
   try {
     const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+tok}}).then(r=>r.json());
     if(u.error) throw new Error(u.error.message);
-    // Controle d'acces
-    const EMAILS_AUTORISES = ['michael@orixamedia.com','kugen.vissouvanadin@orixamedia.com','gonzague@orixamedia.com','fabien.guillossou@orixa-group.com','alban@orixamedia.com'];
-    if(!EMAILS_AUTORISES.includes(u.email)) { clearToken(); window.location.href='index.html?error=unauthorized'; return; }
+    if (!await controlerAcces(tok)) return;
     document.getElementById('uName').textContent=u.name||u.email||'';
     if(u.picture) document.getElementById('uAvatar').src=u.picture;
     document.getElementById('loadingTxt').textContent='Chargement historique P&L...';
