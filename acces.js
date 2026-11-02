@@ -72,6 +72,24 @@
       if (!c) return;
       a.style.display = pages.indexOf(c) >= 0 ? '' : 'none';
     });
+    /* Paramètres n'est pas un lien mais un groupe repliable, poussé en bas
+       de la barre. Il se montre ou se cache d'un bloc. */
+    const grp = document.getElementById('grpParam');
+    if (grp) grp.style.display = pages.indexOf('parametres') >= 0 ? '' : 'none';
+  }
+
+  /* Le repli du groupe, identique sur les quatre pages. Le garde-fou évite
+     un double branchement si la page avait déjà son propre écouteur. */
+  function brancherGroupe() {
+    const b = document.getElementById('btnParam');
+    const s = document.getElementById('sousParam');
+    if (!b || !s || b.dataset.branche) return;
+    b.dataset.branche = '1';
+    b.addEventListener('click', () => {
+      const ouvert = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!ouvert));
+      s.hidden = ouvert;
+    });
   }
 
   function refus(titre, texte, detail) {
@@ -115,6 +133,13 @@
 
     if (pages.indexOf(ici) >= 0) {
       ajusterMenu(pages);
+      brancherGroupe();
+      /* sur la page Paramètres elle-même, le groupe s'ouvre d'emblée */
+      if (ici === 'parametres') {
+        const b = document.getElementById('btnParam');
+        const s = document.getElementById('sousParam');
+        if (b && s) { b.setAttribute('aria-expanded', 'true'); s.hidden = false; }
+      }
       return true;
     }
 
