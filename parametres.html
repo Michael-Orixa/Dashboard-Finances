@@ -60,6 +60,9 @@ body{
 .sous-menu{display:flex; flex-direction:column; gap:2px;
   margin-left:13px; padding-left:11px; border-left:1px solid var(--line-2)}
 .nav-btn.sous{font-size:12.5px; padding:8px 11px}
+/* sans cette règle, le display:flex ci-dessus l'emporte sur le display:none
+   que le navigateur applique à [hidden], et le sous-menu reste ouvert. */
+.sous-menu[hidden]{display:none}
 .sidebar-footer{padding:1rem .8rem; border-top:1px solid var(--line)}
 .user-info{display:flex; align-items:center; gap:8px; margin-bottom:8px}
 .user-avatar{width:26px; height:26px; border-radius:50%; background:var(--card-2);
@@ -185,12 +188,12 @@ body{
 
     <div class="nav-groupe" id="grpParam">
       <button class="nav-btn nav-parent" type="button" id="btnParam"
-              aria-expanded="true" aria-controls="sousParam">
+              aria-expanded="false" aria-controls="sousParam">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Paramètres
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       </button>
-      <div class="sous-menu" id="sousParam">
+      <div class="sous-menu" id="sousParam" hidden>
         <a class="nav-btn sous active" href="#">Mise à jour des tables</a>
       </div>
     </div>
