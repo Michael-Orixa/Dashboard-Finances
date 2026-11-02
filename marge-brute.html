@@ -66,6 +66,24 @@ body{
 .nav-btn.active svg{opacity:1}
 .nav-btn:hover{color:var(--txt); background:var(--card-2)}
 .nav-btn.active{border-color:rgba(99,102,241,.3); color:#fff; background:rgba(99,102,241,.15)}
+/* groupe « Paramètres » : poussé en bas de la barre, replié par défaut.
+   Les couleurs sont écrites en clair plutôt qu'en variables, les trois
+   pages n'ayant pas les mêmes noms de tokens. */
+.spacer{flex:1}
+.nav-groupe{display:flex; flex-direction:column; gap:4px}
+.nav-parent .chev{margin-left:auto; width:13px; height:13px; opacity:.7; transition:transform .15s}
+.nav-parent[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+.sous-menu{display:flex; flex-direction:column; gap:2px;
+  margin-left:13px; padding-left:11px; border-left:1px solid rgba(255,255,255,.14)}
+.nav-btn.sous{font-size:12.5px; padding:8px 11px}
+/* sans cette règle, le display:flex ci-dessus l'emporte sur le display:none
+   que le navigateur applique à [hidden], et le sous-menu reste ouvert. */
+.sous-menu[hidden]{display:none}
+@media (max-width:900px){
+  .nav-groupe, .sous-menu{display:contents}
+  .chev, .spacer{display:none}
+  .sous-menu{margin-left:0; padding-left:0; border-left:0}
+}
 .main{margin-left:238px; flex:1; min-width:0}
 .sidebar-footer{padding:1rem .8rem; border-top:1px solid var(--line)}
 .user-info{display:flex; align-items:center; gap:8px; margin-bottom:8px}
@@ -367,6 +385,18 @@ body{
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
       Historique P&amp;L
     </a>
+    <div class="spacer"></div>
+    <div class="nav-groupe" id="grpParam" style="display:none">
+      <button class="nav-btn nav-parent" type="button" id="btnParam"
+              aria-expanded="false" aria-controls="sousParam">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Paramètres
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="sous-menu" id="sousParam" hidden>
+        <a class="nav-btn sous" href="parametres.html">Mise à jour des tables</a>
+      </div>
+    </div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
@@ -534,6 +564,7 @@ body{
 <div class="pop" id="pop" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="acces.js"></script>
 <script>
 /* ---- jeton Google, partagé avec les autres pages du dashboard ---- */
 const TOKEN_TTL = 3500 * 1000;
@@ -1192,9 +1223,9 @@ function kpis(){
   note.hidden = hors < 1000;
   if (!note.hidden)
     note.textContent = 'Alto et Origine totalisent ' + keur(att - hors)
-      + ' : ' + keur(hors) + ' de marge attendue ne portent pas de secteur, '
-      + 'faute de pôle renseigné sur les lignes de prévision. Ces montants '
-      + 'comptent dans la marge brute attendue mais pas dans la ventilation.';
+      + ' : ' + keur(hors) + ' de marge attendue ne sont pas ventilés, faute '
+      + 'de secteur sur le client ou de pôle sur la ligne. Ces montants comptent '
+      + 'dans la marge brute attendue mais pas dans la ventilation.';
 
    
 }
@@ -1772,11 +1803,7 @@ async function init(){
     const u = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
       {headers:{Authorization:'Bearer '+tok}}).then(r => r.json());
     if (u.error) throw new Error(u.error.message);
-    const EMAILS_AUTORISES = ['michael@orixamedia.com','kugen.vissouvanadin@orixamedia.com',
-      'gonzague@orixamedia.com','fabien.guillossou@orixa-group.com','alban@orixamedia.com'];
-    if (!EMAILS_AUTORISES.includes(u.email)){
-      clearToken(); window.location.href = 'index.html?error=unauthorized'; return;
-    }
+    if (!await controlerAcces(tok)) return;
     document.getElementById('uName').textContent = u.name || u.email || '';
     if (u.picture) document.getElementById('uAvatar').src = u.picture;
 
