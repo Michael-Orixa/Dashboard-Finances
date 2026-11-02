@@ -28,6 +28,9 @@
 .sous-menu{display:flex; flex-direction:column; gap:2px;
   margin-left:13px; padding-left:11px; border-left:1px solid rgba(255,255,255,.14)}
 .nav-btn.sous{font-size:12.5px; padding:8px 11px}
+/* sans cette règle, le display:flex ci-dessus l'emporte sur le display:none
+   que le navigateur applique à [hidden], et le sous-menu reste ouvert. */
+.sous-menu[hidden]{display:none}
 @media (max-width:900px){
   .nav-groupe, .sous-menu{display:contents}
   .chev, .spacer{display:none}
