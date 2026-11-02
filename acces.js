@@ -28,16 +28,18 @@
     'index.html':       'activite',
     'marge-brute.html': 'marge_brute',
     'historique.html':  'historique',
-    'parametres.html':  'parametres'
+    'parametres.html':  'parametres',
+    'panneau-controle.html': 'panneau'
   };
   const FICHIER = {
     activite:    'index.html',
     marge_brute: 'marge-brute.html',
     historique:  'historique.html',
-    parametres:  'parametres.html'
+    parametres:  'parametres.html',
+    panneau:     'panneau-controle.html'
   };
   /* ordre d'affichage, qui sert aussi à choisir la page de repli */
-  const ORDRE = ['activite', 'marge_brute', 'historique', 'parametres'];
+  const ORDRE = ['activite', 'marge_brute', 'historique', 'parametres', 'panneau'];
 
   /* Pages logées sous l'engrenage « Paramètres ». Le groupe s'affiche dès
      qu'une seule d'entre elles est accordée, et chaque entrée se montre ou
@@ -50,7 +52,7 @@
           quatre barres latérales ;
        4. les lignes correspondantes dans Admin.Acces.
      Rien d'autre n'est à toucher. */
-  const SOUS = ['parametres'];
+  const SOUS = ['parametres', 'panneau'];
 
   function pageCourante() {
     const f = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
