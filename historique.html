@@ -318,7 +318,7 @@ async function init() {
     document.getElementById('uName').textContent=u.name||u.email||'';
     if(u.picture) document.getElementById('uAvatar').src=u.picture;
     document.getElementById('loadingTxt').textContent='Chargement historique P&L...';
-    histData=await bqQuery(tok,'SELECT entite,annee,ca,mb,ace,fees_direction,production_immobilisee,subventions_exploitation,masse_salariale,impots_taxes,reprises_amst,autres_produits,dotations_amst,dotations_provisions,autres_charges,produits_financiers,charges_financieres,produits_exceptionnels,charges_exceptionnelles,impots_societe,credit_impots,valeur_ajoutee,ebitda,ebit,rcai,resultat_exceptionnel,resultat_net_comptable,resultat_net FROM `db-finances-496809.Historique_BP.Historique_BP_Groupe` ORDER BY annee DESC,entite');
+    histData=await bqQuery(tok,'SELECT entite,annee,ca,mb,ace,fees_direction,production_immobilisee,subventions_exploitation,masse_salariale,impots_taxes,reprises_amst,autres_produits,dotations_amst,dotations_provisions,autres_charges,produits_financiers,charges_financieres,produits_exceptionnels,charges_exceptionnelles,impots_societe,credit_impots,valeur_ajoutee,ebitda,ebit,rcai,resultat_exceptionnel,resultat_net_comptable,resultat_net FROM `db-finances-496809.Historique_BP.Historique_BP_Groupe_mat` ORDER BY annee DESC,entite');
     document.getElementById('loadingOverlay').style.display='none';
 
     // Pre-selectionner les 4 dernieres annees
@@ -335,8 +335,47 @@ async function init() {
 
     renderPL();
   } catch(e) {
-    clearToken();
-    window.location.href='index.html';
+    const msg = String((e && e.message) || e);
+    /* Seule une vraie panne d'authentification justifie de vider le jeton.
+       Tout le reste — un droit manquant sur le dataset Historique_BP, une
+       table absente, une coupure réseau — doit se dire. Vider le jeton et
+       repartir sur l'accueil ressemble à une déconnexion inexpliquée et
+       efface le motif, donc la seule information qui permettrait d'agir.
+       C'est le traitement déjà en place sur les pages Activité, Marge
+       brute et Panneau de contrôle ; cette page-ci ne l'avait pas. */
+    if (/401|UNAUTHENTICATED|invalid[_ ]token|Invalid Credentials/i.test(msg)) {
+      clearToken();
+      window.location.href = 'index.html';
+      return;
+    }
+    const droit = /403|Access Denied|permission|denied/i.test(msg);
+    const sp = document.querySelector('#loadingOverlay .spinner');
+    if (sp) sp.style.display = 'none';
+    document.getElementById('loadingTxt').innerHTML =
+      '<div style="max-width:470px;text-align:left">'
+      + '<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:9px">'
+      + (droit ? 'Vous n’avez pas accès à ces données'
+               : 'Le chargement n’a pas abouti') + '</div>'
+      + '<div style="font-size:13px;line-height:1.55;color:#9aa0b4">'
+      + (droit
+          ? 'Votre compte est bien habilité sur cette page, mais il lui manque '
+            + 'le droit de lecture sur le jeu de données de l’historique P&amp;L. '
+            + 'Signalez-le : c’est une autorisation à ajouter, pas un problème '
+            + 'de connexion. Votre session reste ouverte.'
+          : 'Votre session reste ouverte. Rechargez la page pour réessayer ; '
+            + 'si le motif ci-dessous persiste, signalez-le.')
+      + '</div>'
+      + '<div style="margin-top:13px;font-family:ui-monospace,Menlo,monospace;'
+      + 'font-size:11.5px;color:var(--muted);word-break:break-word">'
+      + msg.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</div>'
+      + '<div style="margin-top:17px;display:flex;gap:9px">'
+      + '<button onclick="location.reload()" style="padding:7px 14px;border-radius:6px;'
+      + 'border:1px solid var(--border);background:transparent;color:#9aa0b4;'
+      + 'font:inherit;font-size:12.5px;cursor:pointer">Réessayer</button>'
+      + '<button onclick="location.href=\'index.html\'" style="padding:7px 14px;'
+      + 'border-radius:6px;border:1px solid var(--border);background:transparent;'
+      + 'color:#9aa0b4;font:inherit;font-size:12.5px;cursor:pointer">'
+      + 'Retour à l’activité</button></div></div>';
   }
 }
 
