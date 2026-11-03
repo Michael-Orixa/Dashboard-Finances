@@ -185,7 +185,27 @@ body{
   padding:2px 7px; border-radius:4px; border:1px solid rgba(234,179,8,.34);
   background:rgba(234,179,8,.1); color:#facc15}
 .tab .mini{display:block; font-size:10.5px; color:var(--txt-3); margin-top:2px}
+.tab b.survol{font-weight:inherit; cursor:help; border-bottom:1px dotted var(--line-2)}
 .jauge{display:inline-flex; align-items:center; gap:8px; justify-content:flex-end; width:100%}
+
+/* ---------- panneau de survol ----------
+   Repris à l'identique de la page Marge brute : même boîte, mêmes lignes,
+   même placement. Un seul élément pour toute la page, rempli à la volée. */
+.pop{position:fixed; z-index:50; background:var(--card-2); border:1px solid var(--line-2);
+  border-radius:8px; padding:11px 13px; box-shadow:0 12px 34px rgba(0,0,0,.5);
+  max-width:360px; pointer-events:none}
+.pop h4{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--txt-3);
+  margin:0 0 7px; font-weight:500}
+.pop-row{display:flex; justify-content:space-between; gap:14px; font-size:12px; padding:1.5px 0}
+.pop-row em{font-style:normal; color:var(--txt-2); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:7px}
+.pop-row em i{width:7px; height:7px; border-radius:2px; flex:none}
+.pop-row span{font-variant-numeric:tabular-nums; color:var(--txt); white-space:nowrap}
+.pop-tot{display:flex; justify-content:space-between; gap:14px; font-size:12px;
+  padding:6px 0 0; margin-top:5px; border-top:1px solid var(--line);
+  color:var(--txt); font-weight:600}
+.pop-tot span{font-variant-numeric:tabular-nums}
+.pop-plus{font-size:11px; color:var(--txt-3); font-style:italic; margin-top:6px}
 .jauge-b{width:60px; height:5px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; flex:none}
 .jauge-b i{display:block; height:100%; border-radius:2px; background:var(--accent)}
 
@@ -232,6 +252,7 @@ body{
   /* la mention intragroupe passe sous le nom de l'entité plutôt que de
      tirer la première colonne sur toute la largeur du téléphone */
   .tab .bulle{display:block; width:max-content; margin-top:3px}
+  .pop{max-width:calc(100vw - 20px)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -303,6 +324,10 @@ body{
     </div>
 
     <div id="corps"><div class="attente">Lecture de l’échéancier…</div></div>
+
+    <!-- une seule infobulle pour toute la page, placée en position fixe
+         et remplie à la volée : hors du flux, elle ne décale rien. -->
+    <div class="pop" id="pop" hidden></div>
 
   </div>
 </div>
@@ -488,13 +513,19 @@ function agreger(lignes){
 
   /* ---- par exercice ---- */
   const exercices = {};
+  const totConcours = {};
   futur.forEach(l => {
     const a = l.mois.slice(0, 4);
     const x = exercices[a] || (exercices[a] = {echeance:0, capital:0, interets:0,
-                                               'Orixa':0, 'Orixa Media':0, 'Visiperf':0});
+                                               'Orixa':0, 'Orixa Media':0, 'Visiperf':0,
+                                               concours:{}});
     x.echeance += l.echeance; x.capital += l.capital;
     x.interets += l.interets + l.assurance;
     x[l.entite] = (x[l.entite] || 0) + l.echeance;
+    /* ventilation par concours, pour le détail au survol du montant */
+    const cle = l.entite + '§' + l.libelle;
+    x.concours[cle] = (x.concours[cle] || 0) + l.echeance;
+    totConcours[cle] = (totConcours[cle] || 0) + l.echeance;
   });
 
   /* ---- un enregistrement par concours ---- */
@@ -537,8 +568,8 @@ function agreger(lignes){
     (resteParEntite[e] || 0) > 0 || axe.some(m => (parMois[m][e] || 0) > 0));
 
   return {L, futur, axe, parMois, courbe, reste, resteParEntite, resteParNature,
-          resteIntra, douze, pire, pic, moisCourant, exercices, liste, actives,
-          krdTotal, krdComparable, ecarts, dernierMois};
+          resteIntra, douze, pire, pic, moisCourant, exercices, totConcours,
+          liste, actives, krdTotal, krdComparable, ecarts, dernierMois};
 }
 
 /* ═══════════════════════════ AFFICHAGE ═══════════════════════════ */
@@ -648,11 +679,12 @@ function vueExercices(D){
         const x = D.exercices[a];
         return '<tr' + (a === anCourant ? ' class="encours"' : '') + '>'
           + '<td>' + a + (a === anCourant ? ' <span class="mini">en cours</span>' : '') + '</td>'
-          + '<td>' + keur(x.echeance) + '</td>'
+          + '<td><b class="survol" data-ex="' + a + '">' + keur(x.echeance) + '</b></td>'
           + '<td class="opt"><span class="jauge"><span class="jauge-b"><i style="width:'
           + (100 * x.echeance / max).toFixed(1) + '%"></i></span></span></td></tr>';
       }).join('')
-    + '<tr class="somme"><td>Total</td><td>' + keur(T.echeance) + '</td>'
+    + '<tr class="somme"><td>Total</td>'
+    + '<td><b class="survol" data-ex="tout">' + keur(T.echeance) + '</b></td>'
     + '<td class="opt"></td></tr>'
     + '</tbody></table></div>'
     + '<p class="note">Le coût du crédit encore à payer s’élève à ' + eur(T.interets)
@@ -734,6 +766,48 @@ function vueDetail(D){
           + eur(D.krdComparable) + ', coïncide avec le capital restant dû porté par les '
           + 'classeurs, ' + eur(D.krdTotal) + '. Les échéanciers sont cohérents.</p>')
     + '</section>';
+}
+
+/* ---- survol : le détail d'un exercice, concours par concours ----
+   Même mécanique que la page Marge brute : une seule boîte, placée à
+   droite de l'élément, à gauche si elle déborde, toujours dans la
+   fenêtre. Le détail est recalculé depuis les mêmes sommes que la ligne
+   survolée, pour que le total affiché et sa ventilation ne puissent pas
+   diverger. */
+const POP_MAX = 15;
+function attacherPop(el, contenu){
+  const pop = document.getElementById('pop');
+  el.onmouseenter = () => {
+    pop.innerHTML = contenu();
+    pop.hidden = false;
+    const r = el.getBoundingClientRect();
+    const h = pop.offsetHeight, w = pop.offsetWidth;
+    let left = r.right + 14;
+    if (left + w > innerWidth - 10) left = r.left - w - 14;
+    pop.style.left = Math.max(10, left) + 'px';
+    pop.style.top  = Math.max(10, Math.min(r.top + r.height / 2 - h / 2,
+                                           innerHeight - h - 10)) + 'px';
+  };
+  el.onmouseleave = () => { pop.hidden = true; };
+}
+
+function popExercice(D, ex){
+  const src = ex === 'tout' ? D.totConcours : (D.exercices[ex] || {concours:{}}).concours;
+  const lignes = Object.entries(src || {}).sort((a, b) => b[1] - a[1]);
+  const total = lignes.reduce((s, [, v]) => s + v, 0);
+  const vus = lignes.slice(0, POP_MAX), reste = lignes.length - vus.length;
+  const titre = ex === 'tout'
+    ? 'Toutes échéances restantes · ' + lignes.length + ' concours'
+    : 'Exercice ' + ex + ' · ' + lignes.length + ' concours';
+  return '<h4>' + echappe(titre) + '</h4>'
+    + vus.map(([cle, v]) => {
+        const [entite, libelle] = cle.split('§');
+        return '<div class="pop-row"><em><i style="background:var(' + tokEnt(entite)
+             + ')"></i>' + echappe(libelle) + '</em><span>' + eur(v) + '</span></div>';
+      }).join('')
+    + (reste > 0 ? '<p class="pop-plus">et ' + reste
+        + (reste > 1 ? ' autres concours' : ' autre concours') + '</p>' : '')
+    + '<div class="pop-tot"><em>Total</em><span>' + eur(total) + '</span></div>';
 }
 
 /* ---- graphiques ---- */
@@ -833,6 +907,9 @@ function rendre(D){
     + '<i>Base - Autres dettes</i>, lus en direct. Les montants intragroupe '
     + 'restent affichés dans chaque entité ; ils ne s’annulent qu’au niveau '
     + 'consolidé, où ils sont de ' + eur(D.resteIntra) + '.</p>';
+
+  document.querySelectorAll('.tab b.survol[data-ex]').forEach(b =>
+    attacherPop(b, () => popExercice(D, b.dataset.ex)));
 
   tracerMur(D);
   tracerExtinction(D);
