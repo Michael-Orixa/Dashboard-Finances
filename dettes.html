@@ -88,13 +88,21 @@ body{
 /* ---------- bandeau de périmètre ---------- */
 .perim{display:flex; align-items:flex-start; gap:9px; background:rgba(99,102,241,.07);
   border:1px solid rgba(99,102,241,.22); border-radius:9px; padding:11px 14px;
-  margin-top:22px; font-size:12px; color:var(--txt-2); line-height:1.5}
+  font-size:12px; color:var(--txt-2); line-height:1.5}
 .perim svg{width:15px; height:15px; flex:0 0 auto; margin-top:1px; fill:none;
   stroke:var(--accent); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
 .perim b{color:var(--txt); font-weight:600}
 
+/* ---------- rythme vertical ----------
+   Repris des pages Activité et Marge brute : 22 px sous la barre de
+   titre, 12 px entre deux blocs, 14 px pour une note à l'intérieur d'une
+   carte. La règle porte sur tous les enfants de #corps, de sorte qu'un
+   bloc ajouté plus tard hérite du bon écart sans qu'on y pense. */
+.perim{margin-top:22px}
+#corps > *{margin-top:12px}
+
 /* ---------- kpi ---------- */
-.kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px}
+.kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
 .kpi{background:var(--card); border:1px solid var(--line); border-radius:10px;
   padding:15px 16px; position:relative; overflow:hidden}
 .kpi::before{content:""; position:absolute; inset:0 0 auto 0; height:2px; background:var(--accent)}
@@ -112,7 +120,7 @@ body{
 .kpi-r b.nil{color:var(--txt-3); opacity:.55; font-weight:400}
 
 /* ---------- cartes ---------- */
-.grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
 .card{background:var(--card); border:1px solid var(--line); border-radius:10px;
   padding:17px 18px 19px; min-width:0}
 .card.full{grid-column:1/-1}
@@ -127,7 +135,7 @@ body{
 .leg i.tr{width:13px; height:0; border-radius:0; border-top:2px dashed rgba(239,68,68,.85)}
 
 /* ---------- panneaux par entité ---------- */
-.entites{display:grid; grid-template-columns:repeat(3,1fr); gap:13px; margin-top:12px}
+.entites{display:grid; grid-template-columns:repeat(3,1fr); gap:13px}
 .ent{background:var(--card-2); border:1px solid var(--line); border-radius:9px;
   padding:14px 15px 15px; min-width:0}
 .ent.e-or{border-color:rgba(198,104,72,.34)}
@@ -634,21 +642,17 @@ function vueExercices(D){
     + ' ouvre l’exercice ' + anCourant + ' en cours de route : son montant ne porte '
     + 'que sur les mois à venir.</p>'
     + '<div class="tab-wrap"><table class="tab"><thead><tr>'
-    + '<th>Exercice</th><th>Capital</th><th class="opt">Intérêts</th>'
-    + '<th>Décaissé</th><th class="opt">Poids</th></tr></thead><tbody>'
+    + '<th>Exercice</th><th>Échéances</th><th class="opt">Poids</th>'
+    + '</tr></thead><tbody>'
     + ans.map(a => {
         const x = D.exercices[a];
         return '<tr' + (a === anCourant ? ' class="encours"' : '') + '>'
           + '<td>' + a + (a === anCourant ? ' <span class="mini">en cours</span>' : '') + '</td>'
-          + '<td>' + keur(x.capital) + '</td>'
-          + '<td class="opt' + (x.interets ? '' : ' nil') + '">'
-          + (x.interets ? keur(x.interets) : '—') + '</td>'
           + '<td>' + keur(x.echeance) + '</td>'
           + '<td class="opt"><span class="jauge"><span class="jauge-b"><i style="width:'
           + (100 * x.echeance / max).toFixed(1) + '%"></i></span></span></td></tr>';
       }).join('')
-    + '<tr class="somme"><td>Total</td><td>' + keur(T.capital) + '</td>'
-    + '<td class="opt">' + keur(T.interets) + '</td><td>' + keur(T.echeance) + '</td>'
+    + '<tr class="somme"><td>Total</td><td>' + keur(T.echeance) + '</td>'
     + '<td class="opt"></td></tr>'
     + '</tbody></table></div>'
     + '<p class="note">Le coût du crédit encore à payer s’élève à ' + eur(T.interets)
@@ -821,10 +825,10 @@ function tracerExtinction(D){
 function rendre(D){
   document.getElementById('corps').innerHTML =
       vueKpis(D)
-    + vueMur(D)
     + vueEntites(D)
     + '<div class="grid">' + vueExtinction(D) + vueExercices(D) + '</div>'
-    + '<div class="grid">' + vueDetail(D) + '</div>'
+    + vueMur(D)
+    + vueDetail(D)
     + '<p class="note">Source : classeurs <i>Bases - Emprunts</i> et '
     + '<i>Base - Autres dettes</i>, lus en direct. Les montants intragroupe '
     + 'restent affichés dans chaque entité ; ils ne s’annulent qu’au niveau '
