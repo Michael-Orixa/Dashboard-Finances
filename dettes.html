@@ -358,10 +358,15 @@ body{
 /* ═══════════════════════════════════════════════════════════════════════
    Page Dettes.
 
-   Une seule requête : la vue Dettes.Dettes_Groupe, cinq cents lignes
-   environ, soit l'échéancier complet au mois. Tout le reste est calculé
+   Une seule requête : la table Dettes.Dettes_Groupe_mat, cinq cent dix
+   lignes, soit l'échéancier complet au mois. Tout le reste est calculé
    dans le navigateur, ce qui permet de changer un horizon ou un cadrage
    sans retoucher le SQL.
+
+   Elle lit la table matérialisée et non la vue qui l'alimente : la vue
+   repose sur six tables externes adossées à deux classeurs, et chaque
+   lecteur aurait alors eu besoin d'un accès Drive à ces classeurs pour
+   seulement consulter la page.
 
    Convention tenue d'un bout à l'autre : le capital restant dû est la
    somme des remboursements de capital encore à venir, et non la colonne
@@ -414,16 +419,21 @@ SELECT entite,
        IFNULL(capital_rembourse, 0)      AS capital,
        krd,
        intragroupe
-FROM \`${P}.Dettes.Dettes_Groupe\`
+FROM \`${P}.Dettes.Dettes_Groupe_mat\`
 WHERE mois IS NOT NULL
 ORDER BY entite, nature, libelle, mois`;
 
-/* Les adresses des classeurs ne figurent nulle part dans ce fichier : le
-   dépôt est public. On les redemande à BigQuery, qui les conserve dans
-   la définition des tables externes, et on n'en garde que l'identifiant
-   Drive. */
-const Q_SOURCES = `
-SELECT DISTINCT REGEXP_EXTRACT(option_value, r'/d/([A-Za-z0-9_-]+)') AS fichier
+/* Deux choses en une requête : quand la table matérialisée a été
+   rafraîchie, et quels classeurs l'alimentent. Leurs adresses ne figurent
+   nulle part dans ce fichier — le dépôt est public — on les redemande à
+   BigQuery, qui les conserve dans la définition des tables externes, et
+   on n'en garde que l'identifiant Drive. */
+const Q_FRAICHEUR = `
+SELECT 'table' AS genre, CAST(last_modified_time AS STRING) AS valeur
+FROM \`${P}.Dettes.__TABLES__\`
+WHERE table_id = 'Dettes_Groupe_mat'
+UNION DISTINCT
+SELECT 'classeur', REGEXP_EXTRACT(option_value, r'/d/([A-Za-z0-9_-]+)')
 FROM \`${P}.Dettes\`.INFORMATION_SCHEMA.TABLE_OPTIONS
 WHERE option_name = 'uris'`;
 
@@ -817,19 +827,22 @@ function vueDetail(D){
 
 /* ═══════════════════════ FRAÎCHEUR DE LA DONNÉE ═══════════════════════
 
-   Les autres pages datent leur contenu par l'horodatage des tables
-   matérialisées, rafraîchies par la requête planifiée. Cette page-ci n'en
-   a aucune : elle lit les classeurs à chaque chargement, à travers des
-   tables externes. Le chiffre affiché est donc toujours celui du classeur
-   à l'instant présent, et la seule question qui vaille est : quand ce
-   classeur a-t-il bougé pour la dernière fois ?
+   Deux fraîcheurs se superposent ici, et les confondre tromperait.
 
-   On retient le plus ancien des deux classeurs, le plus prudent. Les
-   seuils ne sont pas ceux des autres pages : un échéancier de prêt ne
-   bouge pas toutes les heures, il bouge quand un concours est signé ou
-   rééchelonné. Alerter au bout de quatre heures n'aurait aucun sens ;
-   deux mois sans mouvement, en revanche, méritent un regard. */
-const SEUIL_VERT = 60, SEUIL_ORANGE = 180;   /* en jours */
+   La première est technique : quand la table matérialisée a-t-elle été
+   reconstruite par la requête planifiée ? C'est elle que porte la pastille,
+   comme sur les autres pages du dashboard. Ses seuils tolèrent un
+   rafraîchissement espacé de quelques heures, pour ne pas virer au rouge
+   simplement parce que la planification tourne toutes les trois heures au
+   lieu d'une.
+
+   La seconde est métier : quand vos classeurs d'emprunts ont-ils bougé
+   pour la dernière fois ? Un échéancier de prêt ne change qu'au gré des
+   signatures et des rééchelonnements, donc elle se compte en jours, pas
+   en minutes. Elle s'affiche en clair sous la date, et passe en ambre
+   au-delà de six mois de silence. */
+const SEUIL_VERT = 5 * 60, SEUIL_ORANGE = 12 * 60;   /* table, en minutes */
+const SEUIL_CLASSEUR = 180;                          /* classeurs, en jours */
 
 function depuis(ms){
   const m = Math.floor((Date.now() - ms) / 60000);
@@ -850,44 +863,51 @@ function poserFraicheur(etat, texte, detail){
   s.innerHTML = detail;
 }
 
+/* Les classeurs : le plus ancien des deux, le plus prudent. Un lecteur qui
+   n'est pas partagé sur un classeur n'obtiendra rien de Drive — ce n'est
+   plus gênant depuis que la page lit une table matérialisée, et la ligne
+   est simplement omise. */
+async function ageClasseurs(tok, ids){
+  const vus = [];
+  await Promise.all(ids.map(async id => {
+    try {
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id
+        + '?fields=modifiedTime', {headers:{Authorization:'Bearer ' + tok}});
+      if (!r.ok) return;
+      const j = await r.json();
+      if (j.modifiedTime) vus.push(Date.parse(j.modifiedTime));
+    } catch(e){ /* classeur injoignable : il ne compte pas */ }
+  }));
+  if (!vus.length) return '';
+  const vieux = Math.min(...vus);
+  const jours = Math.floor((Date.now() - vieux) / 86400000);
+  const alerte = jours > SEUIL_CLASSEUR;
+  return '<br><span style="color:' + (alerte ? '#fbbf24' : 'var(--txt-3)') + '">'
+       + (vus.length > 1 ? 'classeurs modifiés ' : 'classeur modifié ')
+       + depuis(vieux) + '</span>';
+}
+
 async function actualisation(tok){
   try {
-    const ids = (await bqQuery(tok, Q_SOURCES)).map(l => l.fichier).filter(Boolean);
-    if (!ids.length) throw new Error('aucun classeur déclaré sur le dataset Dettes');
+    const lignes = await bqQuery(tok, Q_FRAICHEUR);
+    const ts  = lignes.filter(l => l.genre === 'table').map(l => Number(l.valeur))[0];
+    const ids = lignes.filter(l => l.genre === 'classeur').map(l => l.valeur).filter(Boolean);
+    if (!ts) throw new Error('la table Dettes_Groupe_mat n’a pas d’horodatage');
 
-    const vus = [];
-    await Promise.all(ids.map(async id => {
-      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id
-        + '?fields=name,modifiedTime,lastModifyingUser(displayName)',
-        {headers:{Authorization:'Bearer ' + tok}});
-      if (!r.ok) return;                       /* un classeur injoignable est ignoré */
-      const j = await r.json();
-      if (j.modifiedTime) vus.push({t: Date.parse(j.modifiedTime), nom: j.name,
-        par: j.lastModifyingUser && j.lastModifyingUser.displayName});
-    }));
-    if (!vus.length) throw new Error('Drive n’a répondu pour aucun classeur');
+    const min = Math.round((Date.now() - ts) / 60000);
+    const etat = min <= SEUIL_VERT ? 'v' : min <= SEUIL_ORANGE ? 'o' : 'r';
+    const dt = new Date(ts);
 
-    vus.sort((a, b) => a.t - b.t);
-    const vieux = vus[0];
-    const jours = Math.floor((Date.now() - vieux.t) / 86400000);
-    const etat = jours <= SEUIL_VERT ? 'v' : jours <= SEUIL_ORANGE ? 'o' : 'r';
-    const dt = new Date(vieux.t);
-
-    poserFraicheur(etat, depuis(vieux.t),
+    poserFraicheur(etat, depuis(ts),
       '<span style="color:var(--txt-3)">'
       + dt.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'})
       + ' à ' + dt.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
-      + (vieux.par ? ' · ' + echappe(vieux.par) : '')
-      + '<br>' + (vus.length > 1
-          ? 'le plus ancien des ' + vus.length + ' classeurs, lus en direct'
-          : 'classeur lu en direct')
-      + '</span>');
+      + '</span>' + await ageClasseurs(tok, ids));
   } catch(e){
-    /* Drive peut manquer au périmètre du jeton, ou l'API être coupée : la
-       page reste entière, seule cette carte le dit. */
     poserFraicheur('o', 'inconnue',
-      '<span style="color:var(--txt-3)">Les classeurs sont bien lus en direct, '
-      + 'mais leur date de modification n’a pas pu être obtenue.</span>');
+      '<span style="color:var(--txt-3)">La date du dernier rafraîchissement '
+      + 'n’a pas pu être obtenue. Les montants affichés, eux, proviennent bien '
+      + 'de la table.</span>');
   }
 }
 
@@ -1027,7 +1047,9 @@ function rendre(D){
     + vueMur(D)
     + vueDetail(D)
     + '<p class="note">Source : classeurs <i>Bases - Emprunts</i> et '
-    + '<i>Base - Autres dettes</i>, lus en direct. Les montants intragroupe '
+    + '<i>Base - Autres dettes</i>, consolidés dans une table rafraîchie par '
+    + 'la requête planifiée — la carte Actualisation en donne la date. '
+    + 'Les montants intragroupe '
     + 'restent affichés dans chaque entité ; ils ne s’annulent qu’au niveau '
     + 'consolidé, où ils sont de ' + eur(D.resteIntra) + '.</p>';
 
@@ -1058,9 +1080,9 @@ async function init(){
       document.getElementById('topS').textContent = 'aucune dette';
       document.getElementById('corps').innerHTML =
         '<div class="panne"><b>L’échéancier est vide</b>'
-        + 'La vue Dettes.Dettes_Groupe n’a renvoyé aucune ligne. Vérifiez que les '
-        + 'classeurs sources sont accessibles et que leurs onglets portent bien '
-        + 'leurs en-têtes.</div>';
+        + 'La table Dettes.Dettes_Groupe_mat n’a renvoyé aucune ligne. Elle est '
+        + 'reconstruite par la requête planifiée MAJ_tables : si celle-ci a '
+        + 'échoué, c’est de ce côté qu’il faut regarder.</div>';
       return;
     }
     rendre(agreger(lignes));
