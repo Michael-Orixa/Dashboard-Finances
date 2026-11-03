@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════
    Contrôle d'accès commun aux pages du dashboard Orixa.
 
-   Chargé par index.html, marge-brute.html, historique.html et
-   parametres.html, il remplace les listes d'adresses qui étaient écrites
-   en dur dans chacune d'elles — et donc publiées sur un dépôt public.
+   Chargé par toutes les pages, il remplace les listes d'adresses qui
+   étaient écrites en dur dans chacune d'elles — et donc publiées sur un
+   dépôt public.
 
    Les habilitations vivent dans BigQuery, table Admin.Acces, lues à
    travers la vue Admin.V_Mes_acces qui ne rend que les lignes de la
@@ -28,6 +28,7 @@
     'index.html':       'activite',
     'marge-brute.html': 'marge_brute',
     'historique.html':  'historique',
+    'dettes.html':      'dettes',
     'parametres.html':  'parametres',
     'panneau-controle.html': 'panneau'
   };
@@ -35,24 +36,40 @@
     activite:    'index.html',
     marge_brute: 'marge-brute.html',
     historique:  'historique.html',
+    dettes:      'dettes.html',
     parametres:  'parametres.html',
     panneau:     'panneau-controle.html'
   };
   /* ordre d'affichage, qui sert aussi à choisir la page de repli */
-  const ORDRE = ['activite', 'marge_brute', 'historique', 'parametres', 'panneau'];
+  const ORDRE = ['activite', 'marge_brute', 'historique', 'dettes',
+                 'parametres', 'panneau'];
 
   /* Pages logées sous l'engrenage « Paramètres ». Le groupe s'affiche dès
      qu'une seule d'entre elles est accordée, et chaque entrée se montre ou
-     se cache pour son propre compte.
-
-     POUR AJOUTER UNE PAGE SOUS PARAMÈTRES, quatre gestes :
-       1. une ligne dans CODE et dans FICHIER, et son code ici ;
-       2. sa place dans ORDRE ;
-       3. un <a class="nav-btn sous" href="…"> dans le sous-menu des
-          quatre barres latérales ;
-       4. les lignes correspondantes dans Admin.Acces.
-     Rien d'autre n'est à toucher. */
+     se cache pour son propre compte. */
   const SOUS = ['parametres', 'panneau'];
+
+  /* Libellé et pictogramme des pages principales, pour que ce fichier
+     sache reconstituer une entrée de menu absente d'une barre latérale.
+
+     C'est ce qui permet d'ajouter une page sans rouvrir les cinq autres :
+     la page nouvelle écrit son propre menu complet, les anciennes se le
+     voient compléter au chargement. Une entrée déjà présente dans le HTML
+     n'est jamais dupliquée.
+
+     POUR AJOUTER UNE PAGE, trois gestes :
+       1. une ligne dans CODE, dans FICHIER, et sa place dans ORDRE ;
+       2. une entrée ici — ou, si elle va sous l'engrenage, son code dans
+          SOUS et un <a class="nav-btn sous"> dans le sous-menu ;
+       3. les lignes correspondantes dans Admin.Acces.
+     Rien d'autre n'est à toucher. */
+  const NAV = {
+    dettes: {
+      libelle: 'Dettes',
+      icone: '<path d="M12 3 2 8h20z"/><path d="M5 21V10M9 21V10M15 21V10M19 21V10"/>'
+           + '<path d="M3 21h18"/>'
+    }
+  };
 
   function pageCourante() {
     const f = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
@@ -77,6 +94,33 @@
     return (d.rows || []).map(l => l.f[0].v);
   }
 
+  /* Insère les entrées de menu que la page ne connaît pas encore, chacune
+     à sa place dans ORDRE : avant le premier lien d'une page qui la suit,
+     et à défaut avant l'espaceur qui précède l'engrenage. */
+  function completerMenu() {
+    const nav = document.querySelector('.sidebar-nav');
+    if (!nav) return;
+    const lien = f => nav.querySelector('a.nav-btn[href="' + f + '"]');
+    const principales = ORDRE.filter(c => SOUS.indexOf(c) < 0);
+
+    principales.forEach((code, i) => {
+      const f = FICHIER[code];
+      if (!f || lien(f) || !NAV[code]) return;
+      const a = document.createElement('a');
+      a.className = 'nav-btn';
+      a.href = f;
+      a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+                  + NAV[code].icone + '</svg>' + NAV[code].libelle;
+      let avant = null;
+      for (let j = i + 1; j < principales.length && !avant; j++)
+        avant = lien(FICHIER[principales[j]]);
+      nav.insertBefore(a, avant || nav.querySelector('.spacer') || null);
+    });
+
+    const ici = lien(FICHIER[pageCourante()] || '');
+    if (ici) ici.classList.add('active');
+  }
+
   /* Le menu suit les habilitations : une entrée non accordée disparaît.
      On agit sur le style en ligne plutôt que sur l'attribut hidden, que la
      règle .nav-btn{display:flex} de chaque page écraserait. */
@@ -95,7 +139,7 @@
       SOUS.some(c => pages.indexOf(c) >= 0) ? '' : 'none';
   }
 
-  /* Le repli du groupe, identique sur les quatre pages. Le garde-fou évite
+  /* Le repli du groupe, identique sur toutes les pages. Le garde-fou évite
      un double branchement si la page avait déjà son propre écouteur. */
   function brancherGroupe() {
     const b = document.getElementById('btnParam');
@@ -149,6 +193,7 @@
     catch (e) { motif = (e && e.message) || String(e); }
 
     if (pages.indexOf(ici) >= 0) {
+      completerMenu();
       ajusterMenu(pages);
       brancherGroupe();
       /* quand on est déjà dans la section, le groupe s'ouvre d'emblée */
