@@ -101,14 +101,35 @@ body{
 .perim{margin-top:22px}
 #corps > *{margin-top:12px}
 
-/* ---------- kpi ---------- */
-.kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+/* ---------- kpi ----------
+   Cinq cartes au lieu de quatre, l'actualisation en dernier : plutôt que
+   de figer le nombre de colonnes, on fixe une largeur plancher et on
+   laisse la grille retomber d'elle-même. Un indicateur ajouté plus tard
+   ne cassera pas la rangée. */
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(198px,1fr)); gap:12px}
 .kpi{background:var(--card); border:1px solid var(--line); border-radius:10px;
   padding:15px 16px; position:relative; overflow:hidden}
 .kpi::before{content:""; position:absolute; inset:0 0 auto 0; height:2px; background:var(--accent)}
 .kpi.k2::before{background:#f59e0b}
 .kpi.k3::before{background:var(--bad)}
 .kpi.k4::before{background:var(--e-om)}
+.kpi.k5::before{background:var(--good)}
+
+/* ---------- fraîcheur de la donnée ----------
+   Repris de la page Activité : même pastille, même pulsation. */
+.maj{display:flex; align-items:center; gap:8px; margin-top:7px}
+.maj .maj-v{font-size:18px; font-weight:600}
+.maj-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;
+  position:relative; display:inline-block}
+.maj-dot::after{content:""; position:absolute; inset:0; border-radius:50%;
+  animation:puls 2.4s ease-out infinite}
+.maj-dot.v, .maj-dot.v::after{background:var(--good)}
+.maj-dot.o, .maj-dot.o::after{background:#f59e0b}
+.maj-dot.r, .maj-dot.r::after{background:var(--bad)}
+@keyframes puls{0%{transform:scale(1); opacity:.7} 70%{transform:scale(2.6); opacity:0}
+  100%{opacity:0}}
+.maj-s{line-height:1.45}
+.maj-s b{font-weight:500; color:var(--txt-2)}
 .kpi-l{font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--txt-3)}
 .kpi-v{font-size:27px; font-weight:600; margin-top:7px; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
 .kpi-s{font-size:12px; color:var(--txt-2); margin-top:3px}
@@ -397,6 +418,15 @@ FROM \`${P}.Dettes.Dettes_Groupe\`
 WHERE mois IS NOT NULL
 ORDER BY entite, nature, libelle, mois`;
 
+/* Les adresses des classeurs ne figurent nulle part dans ce fichier : le
+   dépôt est public. On les redemande à BigQuery, qui les conserve dans
+   la définition des tables externes, et on n'en garde que l'identifiant
+   Drive. */
+const Q_SOURCES = `
+SELECT DISTINCT REGEXP_EXTRACT(option_value, r'/d/([A-Za-z0-9_-]+)') AS fichier
+FROM \`${P}.Dettes\`.INFORMATION_SCHEMA.TABLE_OPTIONS
+WHERE option_name = 'uris'`;
+
 /* ═══════════════════════════ OUTILLAGE ═══════════════════════════ */
 
 const echappe = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
@@ -425,10 +455,14 @@ const ecart = (a, b) => {           /* nombre de mois de a vers b */
   return (yb - ya) * 12 + (mb - ma);
 };
 
+/* L'ordre déclaré ici gouverne tout : les lignes des indicateurs, les
+   panneaux par société, l'empilement des barres et les légendes. Orixa
+   Media vient en dernier parce que ses deux emprunts se sont éteints en
+   avril 2026 ; si elle se réendette, elle reprendra cette place-là. */
 const ENTITES = [
   ['Orixa',       'e-or', '--e-or'],
-  ['Orixa Media', 'e-om', '--e-om'],
-  ['Visiperf',    'e-vp', '--e-vp']
+  ['Visiperf',    'e-vp', '--e-vp'],
+  ['Orixa Media', 'e-om', '--e-om']
 ];
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const tokEnt = e => { const t = ENTITES.find(x => x[0] === e); return t ? t[2] : '--txt-3'; };
@@ -517,10 +551,14 @@ function agreger(lignes){
   futur.forEach(l => {
     const a = l.mois.slice(0, 4);
     const x = exercices[a] || (exercices[a] = {echeance:0, capital:0, interets:0,
+                                               capitalEmprunt:0,
                                                'Orixa':0, 'Orixa Media':0, 'Visiperf':0,
                                                concours:{}});
     x.echeance += l.echeance; x.capital += l.capital;
     x.interets += l.interets + l.assurance;
+    /* seuls les emprunts portent des intérêts dans les classeurs : le
+       coût du crédit se rapporte à leur capital, pas à l'ensemble. */
+    if (l.nature === 'Emprunt') x.capitalEmprunt += l.capital;
     x[l.entite] = (x[l.entite] || 0) + l.echeance;
     /* ventilation par concours, pour le détail au survol du montant */
     const cle = l.entite + '§' + l.libelle;
@@ -595,17 +633,17 @@ function vueKpis(D){
     + '<div class="kpi-v">' + kgros(D.douze) + '</div>'
     + '<div class="kpi-s">' + libMois(aujourdhui) + ' → ' + libMois(finDouze) + '</div>'
     + '<div class="kpi-rows">'
-    + '<div class="kpi-r"><span>soit par mois</span><b>' + eur(D.douze / 12) + '</b></div>'
+    + '<div class="kpi-r"><span>soit par mois</span><b>' + keur(D.douze / 12) + '</b></div>'
     + '</div></div>'
 
     + '<div class="kpi k3"><div class="kpi-l">Pic de charge</div>'
-    + '<div class="kpi-v">' + (D.pic.mois ? eur(D.pic.montant) : '—') + '</div>'
+    + '<div class="kpi-v">' + (D.pic.mois ? kgros(D.pic.montant) : '—') + '</div>'
     + '<div class="kpi-s">' + (D.pic.mois ? 'en ' + libMoisLong(D.pic.mois) : 'aucune échéance')
     + '</div>'
     + '<div class="kpi-rows">'
     + '<div class="kpi-r"><span>ce mois-ci</span><b'
     + (D.moisCourant ? '' : ' class="nil"') + '>'
-    + (D.moisCourant ? eur(D.moisCourant) : '—') + '</b></div>'
+    + (D.moisCourant ? keur(D.moisCourant) : '—') + '</b></div>'
     + (marche >= 1.5
         ? '<div class="kpi-r"><span>soit une marche de</span><b>×'
           + marche.toFixed(1).replace('.', ',') + '</b></div>'
@@ -620,6 +658,12 @@ function vueKpis(D){
     + keur(D.reste - D.resteIntra) + '</b></div>'
     + '</div></div>'
 
+    + '<div class="kpi k5"><div class="kpi-l">Actualisation</div>'
+    + '<div class="maj"><span class="maj-dot o"></span>'
+    + '<span class="maj-v">lecture…</span></div>'
+    + '<div class="kpi-s maj-s" style="margin-top:6px">'
+    + '<span style="color:var(--txt-3)">interrogation des classeurs</span></div></div>'
+
     + '</section>'
 
     + (D.pire.debut !== aujourdhui && D.pire.montant > D.douze * 1.25
@@ -628,8 +672,8 @@ function vueKpis(D){
           + '<path d="M12 9v4M12 17h.01"/></svg>'
           + '<div>Les douze mois à venir ne sont pas les plus lourds. La fenêtre la plus '
           + 'chargée court de <b>' + libMoisLong(D.pire.debut) + '</b> à <b>'
-          + libMoisLong(pirefin) + '</b>, pour <b>' + eur(D.pire.montant)
-          + '</b>, soit ' + eur(D.pire.montant / 12) + ' par mois.</div></div>'
+          + libMoisLong(pirefin) + '</b>, pour <b>' + keur(D.pire.montant)
+          + '</b>, soit ' + keur(D.pire.montant / 12) + ' par mois.</div></div>'
         : '');
 }
 
@@ -662,8 +706,9 @@ function vueExercices(D){
   const T = ans.reduce((s, a) => {
     const x = D.exercices[a];
     s.echeance += x.echeance; s.capital += x.capital; s.interets += x.interets;
+    s.capitalEmprunt += x.capitalEmprunt;
     return s;
-  }, {echeance:0, capital:0, interets:0});
+  }, {echeance:0, capital:0, interets:0, capitalEmprunt:0});
   const max = ans.reduce((m, a) => Math.max(m, D.exercices[a].echeance), 0) || 1;
   const anCourant = aujourdhui.slice(0, 4);
 
@@ -688,8 +733,10 @@ function vueExercices(D){
     + '<td class="opt"></td></tr>'
     + '</tbody></table></div>'
     + '<p class="note">Le coût du crédit encore à payer s’élève à ' + eur(T.interets)
-    + ', soit ' + (100 * T.interets / (T.capital || 1)).toFixed(1).replace('.', ',')
-    + ' % du capital restant.</p>'
+    + ', soit ' + (100 * T.interets / (T.capitalEmprunt || 1)).toFixed(1).replace('.', ',')
+    + ' % du capital des emprunts bancaires. Les autres dettes — échéanciers '
+    + 'fiscaux et sociaux, crédits vendeurs, comptes courants — ne portent pas '
+    + 'd’intérêts dans les classeurs.</p>'
     + '</section>';
 }
 
@@ -766,6 +813,82 @@ function vueDetail(D){
           + eur(D.krdComparable) + ', coïncide avec le capital restant dû porté par les '
           + 'classeurs, ' + eur(D.krdTotal) + '. Les échéanciers sont cohérents.</p>')
     + '</section>';
+}
+
+/* ═══════════════════════ FRAÎCHEUR DE LA DONNÉE ═══════════════════════
+
+   Les autres pages datent leur contenu par l'horodatage des tables
+   matérialisées, rafraîchies par la requête planifiée. Cette page-ci n'en
+   a aucune : elle lit les classeurs à chaque chargement, à travers des
+   tables externes. Le chiffre affiché est donc toujours celui du classeur
+   à l'instant présent, et la seule question qui vaille est : quand ce
+   classeur a-t-il bougé pour la dernière fois ?
+
+   On retient le plus ancien des deux classeurs, le plus prudent. Les
+   seuils ne sont pas ceux des autres pages : un échéancier de prêt ne
+   bouge pas toutes les heures, il bouge quand un concours est signé ou
+   rééchelonné. Alerter au bout de quatre heures n'aurait aucun sens ;
+   deux mois sans mouvement, en revanche, méritent un regard. */
+const SEUIL_VERT = 60, SEUIL_ORANGE = 180;   /* en jours */
+
+function depuis(ms){
+  const m = Math.floor((Date.now() - ms) / 60000);
+  if (m < 60)   return 'il y a ' + m + ' min';
+  if (m < 2880) return 'il y a ' + Math.round(m / 60) + ' h';
+  const j = Math.round(m / 1440);
+  return j < 60 ? 'il y a ' + j + ' j' : 'il y a ' + Math.round(j / 30) + ' mois';
+}
+
+function poserFraicheur(etat, texte, detail){
+  const v = document.querySelector('.maj .maj-v');
+  const d = document.querySelector('.maj .maj-dot');
+  const s = document.querySelector('.maj-s');
+  if (!v) return;
+  v.textContent = texte;
+  v.style.color = etat === 'r' ? 'var(--bad)' : 'var(--txt)';
+  d.className = 'maj-dot ' + etat;
+  s.innerHTML = detail;
+}
+
+async function actualisation(tok){
+  try {
+    const ids = (await bqQuery(tok, Q_SOURCES)).map(l => l.fichier).filter(Boolean);
+    if (!ids.length) throw new Error('aucun classeur déclaré sur le dataset Dettes');
+
+    const vus = [];
+    await Promise.all(ids.map(async id => {
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id
+        + '?fields=name,modifiedTime,lastModifyingUser(displayName)',
+        {headers:{Authorization:'Bearer ' + tok}});
+      if (!r.ok) return;                       /* un classeur injoignable est ignoré */
+      const j = await r.json();
+      if (j.modifiedTime) vus.push({t: Date.parse(j.modifiedTime), nom: j.name,
+        par: j.lastModifyingUser && j.lastModifyingUser.displayName});
+    }));
+    if (!vus.length) throw new Error('Drive n’a répondu pour aucun classeur');
+
+    vus.sort((a, b) => a.t - b.t);
+    const vieux = vus[0];
+    const jours = Math.floor((Date.now() - vieux.t) / 86400000);
+    const etat = jours <= SEUIL_VERT ? 'v' : jours <= SEUIL_ORANGE ? 'o' : 'r';
+    const dt = new Date(vieux.t);
+
+    poserFraicheur(etat, depuis(vieux.t),
+      '<span style="color:var(--txt-3)">'
+      + dt.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'})
+      + ' à ' + dt.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
+      + (vieux.par ? ' · ' + echappe(vieux.par) : '')
+      + '<br>' + (vus.length > 1
+          ? 'le plus ancien des ' + vus.length + ' classeurs, lus en direct'
+          : 'classeur lu en direct')
+      + '</span>');
+  } catch(e){
+    /* Drive peut manquer au périmètre du jeton, ou l'API être coupée : la
+       page reste entière, seule cette carte le dit. */
+    poserFraicheur('o', 'inconnue',
+      '<span style="color:var(--txt-3)">Les classeurs sont bien lus en direct, '
+      + 'mais leur date de modification n’a pas pu être obtenue.</span>');
+  }
 }
 
 /* ---- survol : le détail d'un exercice, concours par concours ----
@@ -900,7 +1023,7 @@ function rendre(D){
   document.getElementById('corps').innerHTML =
       vueKpis(D)
     + vueEntites(D)
-    + '<div class="grid">' + vueExtinction(D) + vueExercices(D) + '</div>'
+    + '<div class="grid">' + vueExercices(D) + vueExtinction(D) + '</div>'
     + vueMur(D)
     + vueDetail(D)
     + '<p class="note">Source : classeurs <i>Bases - Emprunts</i> et '
@@ -941,6 +1064,9 @@ async function init(){
       return;
     }
     rendre(agreger(lignes));
+    /* la fraîcheur arrive après coup : une lenteur de Drive ne doit pas
+       retarder l'affichage des chiffres. */
+    actualisation(tok);
   } catch(e){
     const msg = String((e && e.message) || e);
     if (/401|UNAUTHENTICATED|invalid[_ ]token|Invalid Credentials/i.test(msg)){
