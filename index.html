@@ -59,6 +59,12 @@
   .kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin-bottom:8px; }
   .kpi-value { font-size:22px; font-weight:600; font-family:"DM Sans",sans-serif; font-variant-numeric:tabular-nums; }
   .kpi-sub { font-size:12px; margin-top:6px; display:flex; gap:20px; font-variant-numeric:tabular-nums; }
+  /* Deux lignes d'écart : la valeur d'abord, le pourcentage en dessous et
+     un cran plus petit. Un point de pourcentage ne dit pas s'il porte sur
+     dix mille euros ou sur un million ; la valeur, si. */
+  .kpi-sub.multi { flex-direction:column; gap:3px; }
+  .kpi-sub.multi > div { display:flex; gap:20px; }
+  .kpi-sub.multi > div.pct { font-size:11px; }
   .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; min-width:0; }
   .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; min-width:0; overflow:hidden; }
   .card-title { font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text); margin-bottom:1rem; font-weight:500; }
@@ -106,6 +112,33 @@
 .tri-obj { position:absolute; left:15%; right:15%; border-top:2px dashed rgba(239,68,68,0.8); }
 .tri-ml { font-size:10px; color:var(--muted); }
 @media (max-width:1250px) { .tri-grid { grid-template-columns:repeat(2,1fr); } }
+
+  /* Charges — les quatre postes qui séparent la marge brute de l'EBITDA.
+     Trois lignes alignées sous le total : le même poste de l'exercice
+     précédent, puis l'écart en valeur et en pourcentage. Les libellés
+     étant à la même hauteur d'une carte à l'autre, les quatre postes se
+     comparent d'un regard horizontal. */
+  .cout-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .cout-card { background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:0.9rem 1rem; min-width:0; }
+  .cout-t { font-size:13px; font-weight:600; }
+  .cout-val { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums;
+    letter-spacing:-0.01em; margin:6px 0 12px; }
+  .cout-l { display:flex; align-items:baseline; justify-content:space-between;
+    gap:10px; padding:5px 0; border-top:1px solid var(--border);
+    font-variant-numeric:tabular-nums; }
+  .cout-l span { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .cout-l b { font-size:12.5px; font-weight:500; white-space:nowrap; }
+  /* Le poids dans la marge brute n'est pas un écart : il reste neutre,
+     sans vert ni rouge, et légèrement détaché du bloc de comparaison. */
+  .cout-l.ratio b { color:var(--text); }
+  .cout-l b i { font-style:normal; font-size:12.5px; }
+  /* nommée cout-rupt et non sep : la page a déjà une classe .sep, qui est
+     un filet vertical de 1 px de large et écrasait la ligne. */
+  .cout-l.cout-rupt { margin-top:5px; }
+  .cout-note { font-size:11px; color:var(--muted); margin-top:14px; font-style:italic; }
+@media (max-width:1250px) { .cout-grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:620px)  { .cout-grid { grid-template-columns:1fr; } }
   #loginScreen { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); z-index:200; }
   .login-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2.5rem; text-align:center; display:flex; flex-direction:column; align-items:center; gap:1.5rem; max-width:380px; width:90%; }
   .login-title { font-size:22px; font-weight:600; }
@@ -185,8 +218,8 @@
 </div>
   <div class="page-body">
     <div class="kpi-grid">
-        <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span></div><div class="kpi-value" id="k1">—</div><div class="kpi-sub" id="k1Sub"></div></div>
-        <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span></div><div class="kpi-value" id="k2">—</div><div class="kpi-sub" id="k2Sub"></div></div>
+        <div class="kpi k1"><div class="kpi-label">Marge brute — <span id="k1Scope">Groupe</span></div><div class="kpi-value" id="k1">—</div><div class="kpi-sub multi" id="k1Sub"></div></div>
+        <div class="kpi k2"><div class="kpi-label">EBITDA — <span id="k2Scope">Groupe</span></div><div class="kpi-value" id="k2">—</div><div class="kpi-sub multi" id="k2Sub"></div></div>
                         <div class="kpi k3"><div class="kpi-label">Seuil de rentabilité — <span id="k3Scope">Groupe</span></div><div class="kpi-value" id="k3">—</div></div>
         <div class="kpi k4"><div class="kpi-label">Actualisation</div><div style="display:flex;align-items:center;gap:8px"><span class="dot v" id="k4Dot"></span><span style="font-size:18px;font-weight:600" id="k4">—</span></div><div class="kpi-sub" id="k4Sub" style="display:block;margin-top:6px"></div></div>
     </div>
@@ -210,6 +243,16 @@
 <span class="leg-item"><span style="width:14px;border-top:2px dashed rgba(239,68,68,0.8)"></span>Objectif</span>
 </div>
 </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Charges — réalisé &amp; prévision vs N-1</div>
+    <div class="cout-grid" id="coutGrid"></div>
+    <div class="cout-note">Ces quatre postes sont tout ce qui sépare la marge brute
+      de l’EBITDA : leur somme est le seuil de rentabilité affiché en tête de page.
+      Montants réalisés et prévisionnels cumulés sur l’exercice, comparés au même
+      périmètre de l’exercice précédent.</div>
+  </div>
+
   <div class="table-card">
       <div class="card-title-main">Compte de résultat — <span id="plScope">Groupe</span> <span id="plYear">2026</span></div>
  <div style="overflow-x:auto">
@@ -271,8 +314,20 @@ function fmtRaw(v) {
   if(abs>=1000) return Math.round(v/1000)+' K€';
   return Math.round(v)+' €';
 }
+/* Le nom de la table interrogée, extrait de la requête : avec vingt et une
+   requêtes lancées en parallèle, savoir laquelle a échoué est l'essentiel
+   de l'information. */
+function tableDe(sql){
+  const m = String(sql || '').match(/FROM `[^.]+\.([^`]+)`/);
+  return m ? m[1] : 'requête inconnue';
+}
 function parseBQ(d) {
-  if(d.error) throw new Error(d.error.message);
+  /* BigQuery renvoie parfois un objet d'erreur sans champ message. Le
+     laisser passer produisait une Error au message vide, affichée « Error »
+     et sans aucune valeur de diagnostic. */
+  if(d.error) throw new Error(d.error.message
+    || (d.error.status ? d.error.status + ' (' + (d.error.code || '?') + ')'
+                       : JSON.stringify(d.error).slice(0, 300)));
   if(d.jobComplete === false) throw new Error('Requête BigQuery non terminée dans le délai imparti.');
   if(!d.rows) return [];
   const fields=d.schema.fields.map(f=>f.name);
@@ -299,7 +354,15 @@ async function init(tok) {
   const bqFetch = (sql) => fetch('https://bigquery.googleapis.com/bigquery/v2/projects/db-finances-496809/queries',{
   method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
   body:JSON.stringify({query:sql,useLegacySql:false,timeoutMs:60000})
-}).then(r=>r.json()).then(parseBQ);
+}).then(async r => {
+  /* Le code HTTP était ignoré : un 403 sur un dataset arrivait à parseBQ
+     comme un résultat ordinaire. On le nomme, avec la table concernée. */
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('BQ ' + r.status + ' sur ' + tableDe(sql) + ' — '
+    + ((j.error && j.error.message) || r.statusText || 'réponse sans motif'));
+  try { return parseBQ(j); }
+  catch (e) { throw new Error(tableDe(sql) + ' — ' + e.message); }
+});
 
 const Q_REAL = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_Realisee_Groupe_mat` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
 const Q_PREV = 'SELECT entite, CAST(EXTRACT(YEAR FROM mois) AS STRING) AS annee, CAST(EXTRACT(MONTH FROM mois) AS STRING) AS mois_num, SUM(mb) AS mb FROM `db-finances-496809.Marge_brute.MB_Previsions_Groupe_mat` GROUP BY entite,annee,mois_num ORDER BY entite,annee,CAST(mois_num AS INT64)';
@@ -490,8 +553,20 @@ function render() {
     const c = p>=0 ? 'var(--green)' : 'var(--red)';
     return '<span style="color:'+c+'">'+(p>=0?'+':'')+p.toFixed(1)+'% '+lib+'</span>';
   };
-  document.getElementById('k1Sub').innerHTML = ecart(totMB,totN1,'vs N-1') + ecart(totMB,totObj,'vs obj.');
-  document.getElementById('k2Sub').innerHTML = ecart(ebitdaKpi, som(ebitdaN1), 'vs N-1') + ecart(ebitdaKpi, som(ebitdaObj), 'vs obj.');
+  /* Le même écart, exprimé en euros. La référence peut être nulle — un
+     exercice sans objectif saisi, par exemple : on le dit plutôt que de
+     diviser par zéro. */
+  const ecartVal = (val, ref, lib) => {
+    if(!ref) return '<span style="color:var(--muted)">'+lib+' n/a</span>';
+    const d = val - ref;
+    const c = d>=0 ? 'var(--green)' : 'var(--red)';
+    return '<span style="color:'+c+'">'+(d>=0?'+':'')+fmtRaw(d)+' '+lib+'</span>';
+  };
+  const ecarts = (val, n1, obj) =>
+      '<div>'           + ecartVal(val,n1,'vs N-1') + ecartVal(val,obj,'vs obj.') + '</div>'
+    + '<div class="pct">'+ ecart(val,n1,'vs N-1')   + ecart(val,obj,'vs obj.')    + '</div>';
+  document.getElementById('k1Sub').innerHTML = ecarts(totMB, totN1, totObj);
+  document.getElementById('k2Sub').innerHTML = ecarts(ebitdaKpi, som(ebitdaN1), som(ebitdaObj));
   document.getElementById('k3Scope').textContent = fEnt.size===0 ? 'Groupe' : Array.from(fEnt).join(' + ');
 
   const mois = [...new Set(d.map(r=>r.mois_num))].map(Number).sort((a,b)=>a-b);
@@ -501,7 +576,6 @@ function render() {
   const pts = a => a.map(v => v!==0 ? v : null);
   lastRealIdx = realN.reduce((acc,v,i)=> v!==0 ? i : acc, -1);
   const fillReal = realPrevN.map((v,i)=> i<=lastRealIdx ? v : null);
-const MOIS_LABELS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
 if(cLine) cLine.destroy();
 cLine=new Chart(document.getElementById('cLine'),{
@@ -532,6 +606,12 @@ sort:(a,b)=>{
   }
 });
 renderTrimestres(realPrevN, objN, lastRealIdx);
+renderCouts({
+  ms:   {serie: msKpi,   n1: ms1},
+  aces: {serie: acesKpi, n1: aces1},
+  aceh: {serie: acehKpi, n1: ach1},
+  mkt:  {serie: mktKpi,  n1: mkt1}
+}, {n: totMB, n1: totN1});
     const fillEb = ebitdaM_g.map((v,i)=> i<=lastRealIdx ? v : null);
   if(cEbitda) cEbitda.destroy();
   cEbitda=new Chart(document.getElementById('cEbitda'),{
@@ -569,6 +649,79 @@ renderTrimestres(realPrevN, objN, lastRealIdx);
   for (const k in x) { if (k!=='entite' && k!=='annee' && k!=='mois_num') return Number(x[k]); }
   return 0;
 }
+/* ═══════════════════════ CHARGES ═══════════════════════
+   Quatre cartes bâties sur les séries déjà chargées pour le compte de
+   résultat : aucune requête supplémentaire.
+
+   Le code couleur est inversé par rapport à la marge et à l'EBITDA. Une
+   charge qui progresse n'est pas une bonne nouvelle, et l'afficher en
+   vert parce que le chiffre monte serait trompeur. */
+/* Déclaré ici plutôt que dans render() : les cartes de charges s'en
+   servent aussi, et deux tableaux de mois côte à côte finiraient par
+   diverger. */
+const MOIS_LABELS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+const COUTS = [
+  {id:'ms',   titre:'Masse salariale'},
+  {id:'aces', titre:'ACE structure'},
+  {id:'aceh', titre:'ACE holding'},
+  {id:'mkt',  titre:'Dépenses marketing'}
+];
+
+/* `mb` porte la marge brute des deux exercices, sur le même périmètre et
+   la même base que les charges : réalisé + prévision pour N, réalisé seul
+   pour N-1. C'est ce qui rend les deux ratios comparables entre eux. */
+function renderCouts(jeu, mb) {
+  const g = document.getElementById('coutGrid');
+  if (!g) return;
+  const part = (v, base) => base ? v / base * 100 : null;
+
+  g.innerHTML = COUTS.map(c => {
+    const tot   = jeu[c.id].serie.reduce((s,v) => s+v, 0);
+    const totN1 = jeu[c.id].n1.reduce((s,v) => s+v, 0);
+    const d     = tot - totN1;
+    const coul  = !totN1 ? 'var(--muted)' : (d <= 0 ? 'var(--green)' : 'var(--red)');
+    const signe = d >= 0 ? '+' : '';
+
+    /* Déplacement du poids dans la marge brute, d'un exercice à l'autre :
+       la différence entre les deux ratios affichés juste au-dessus. */
+    const pN   = part(tot,   mb.n);
+    const pN1  = part(totN1, mb.n1);
+    /* Arrondi avant de choisir le signe et la couleur : un écart de deux
+       centièmes de point s'afficherait sinon « -0.0 pt », en vert, et
+       annoncerait une baisse qui n'existe pas. Un zéro arrondi est une
+       stabilité, et se dit en gris. */
+    let dpt = (pN !== null && pN1 !== null) ? Math.round((pN - pN1) * 10) / 10 : null;
+    if (dpt === 0) dpt = 0;                       /* neutralise le zéro négatif */
+    const coulPt = (dpt === null || dpt === 0) ? 'var(--muted)'
+                 : (dpt < 0 ? 'var(--green)' : 'var(--red)');
+
+    /* Sans exercice précédent, on affiche un tiret : un écart calculé sur
+       une base nulle n'aurait aucun sens, et un zéro se lirait comme une
+       stabilité. */
+    const ligne = (lib, val, cls) =>
+        '<div class="cout-l' + (cls ? ' ' + cls : '') + '"><span>' + lib + '</span>'
+      + '<b' + (cls === 'val' ? ' style="color:' + coul + '"' : '')
+      + '>' + val + '</b></div>';
+
+    return '<div class="cout-card">'
+      + '<div class="cout-t">' + c.titre + '</div>'
+      + '<div class="cout-val">' + fmtRaw(tot) + '</div>'
+      + ligne('N-1', totN1 ? fmtRaw(totN1) : '—')
+      + ligne('Écart', totN1 ? signe + fmtRaw(d) : '—', 'val')
+      + ligne('% MB', pN !== null ? pN.toFixed(1) + '%' : '—', 'ratio cout-rupt')
+      /* « % MB vs N-1 » et non « % MB N-1 » : la ligne ne porte pas le
+         ratio de l'exercice précédent mais son écart avec celui-ci. */
+      + ligne('% MB vs N-1',
+          dpt !== null
+            ? '<i style="color:' + coulPt + '">'
+              + (dpt > 0 ? '+' : '') + dpt.toFixed(1) + '%</i>'
+            : '—',
+          'ratio')
+      + '</div>';
+  }).join('');
+}
+
 function serieMois(data, annee, ents) {
   return Array.from({length:12},(_,i)=>{
     const m=String(i+1);
