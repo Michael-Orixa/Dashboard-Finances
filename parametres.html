@@ -116,6 +116,10 @@ body{
 .liste[data-cat="ref"]{--puce:var(--p7)}
 .liste[data-cat="ms"]{--puce:var(--p5)}
 .liste[data-cat="hors"]{--puce:var(--p2)}
+.liste[data-cat="dette"]{--puce:var(--p4)}
+/* bp n'avait pas sa couleur et retombait sur le gris de « non classées ».
+   Avec Dettes en plus, trois sections auraient porté la même puce. */
+.liste[data-cat="bp"]{--puce:var(--p6)}
 .thead span:first-child{padding-left:16px}
 .src-d{font-size:12px; color:var(--txt-2); font-variant-numeric:tabular-nums;
   min-width:0; white-space:nowrap}
@@ -257,8 +261,8 @@ body{
    ═══════════════════════════════════════════════════════════════════════ */
 
 const P  = 'db-finances-496809';
-const DS = ['ACE_holding','ACE_structure','Clients','Depenses_marketing','Ebitda',
-            'Historique_BP','Marge_brute','Masse_salariale','Produits'];
+const DS = ['ACE_holding','ACE_structure','Clients','Depenses_marketing','Dettes',
+            'Ebitda','Historique_BP','Marge_brute','Masse_salariale','Produits'];
 
 /* ---- jeton Google, partagé avec les autres pages du dashboard ---- */
 const TOKEN_TTL = 3500 * 1000;
@@ -324,6 +328,7 @@ const SECTIONS = [
   {id:'mb',   cat:'mb',   titre:'Marge brute · réalisé, prévisions et objectifs', seuil:10},
   {id:'ref',  cat:'ref',  titre:'Référentiels · clients et produits', seuil:60},
   {id:'ms',   cat:'ms',   titre:'Masse salariale', seuil:20},
+  {id:'dette',cat:'dette',titre:'Dettes · emprunts et échéanciers', seuil:90},
   {id:'hors', cat:'hors', titre:'Holding, structure, marketing et EBITDA', seuil:20},
   {id:'bp',   cat:'bp',   titre:'Historique P&L', seuil:365},
   {id:'autre',cat:'autre',titre:'Sources non classées', seuil:30}
@@ -350,6 +355,7 @@ const LIB = {
 
   Clients_Orixa_Media:  ['ref','Clients — Orixa Media'],
   Comptes_Orixa_Media:  ['ref','Comptes commerciaux — Orixa Media'],
+  Repartition_AM:       ['ref','Répartition des AM par pôle'],
   Produits_Poles:       ['ref','Référentiel produits et pôles'],
 
   MS_salarie_all:                 ['ms','Salariés — référentiel'],
@@ -372,6 +378,13 @@ const LIB = {
   Depenses_marketing_realise:    ['hors','Dépenses marketing — réalisé'],
   Depenses_marketing_previsions: ['hors','Dépenses marketing — prévisions'],
   Ebitda_objectifs_mensuel:      ['hors','Objectifs EBITDA mensuels'],
+
+  Emprunts_Orixa:        ['dette','Emprunts — Orixa'],
+  Emprunts_Orixa_Media:  ['dette','Emprunts — Orixa Media'],
+  Emprunts_Visiperf:     ['dette','Emprunts — Visiperf'],
+  Autres_Orixa:          ['dette','Autres dettes — Orixa'],
+  Autres_Orixa_Media:    ['dette','Autres dettes — Orixa Media'],
+  Autres_Visiperf:       ['dette','Autres dettes — Visiperf'],
 
   Historique_BP_Orixa:       ['bp','Historique BP — Orixa groupe'],
   Historique_BP_Orixa_Media: ['bp','Historique BP — Orixa Media'],
