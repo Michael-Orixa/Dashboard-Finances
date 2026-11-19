@@ -14,6 +14,11 @@
    « oui » pour la page courante, rien ne s'affiche. Une requête en erreur,
    un dataset inaccessible ou une réponse vide valent refus.
 
+   Ce fichier sait aussi reconstituer le menu : une page ajoutée ici
+   apparaît dans la barre latérale des pages déjà en ligne, sans qu'on ait
+   à les rouvrir. C'est ce qui a permis d'ajouter « Dettes » en novembre
+   sans toucher aux cinq autres fichiers.
+
    Rappel : ceci gouverne la navigation, pas la confidentialité. Ce qu'une
    personne peut réellement lire dépend de ses droits IAM sur les datasets.
    ═══════════════════════════════════════════════════════════════════════ */
@@ -22,54 +27,68 @@
 
   const PROJET = 'db-finances-496809';
 
-  /* Un code de page par fichier. Le code est ce qui est stocké en base ;
-     le fichier, ce que le navigateur demande. */
-  const CODE = {
-    'index.html':       'activite',
-    'marge-brute.html': 'marge_brute',
-    'historique.html':  'historique',
-    'dettes.html':      'dettes',
-    'parametres.html':  'parametres',
-    'panneau-controle.html': 'panneau'
-  };
-  const FICHIER = {
-    activite:    'index.html',
-    marge_brute: 'marge-brute.html',
-    historique:  'historique.html',
-    dettes:      'dettes.html',
-    parametres:  'parametres.html',
-    panneau:     'panneau-controle.html'
-  };
-  /* ordre d'affichage, qui sert aussi à choisir la page de repli */
-  const ORDRE = ['activite', 'marge_brute', 'historique', 'dettes',
-                 'parametres', 'panneau'];
+  /* ─────────────────────────────────────────────────────────────────────
+     LE MENU, EN UN SEUL ENDROIT
 
-  /* Pages logées sous l'engrenage « Paramètres ». Le groupe s'affiche dès
-     qu'une seule d'entre elles est accordée, et chaque entrée se montre ou
-     se cache pour son propre compte. */
-  const SOUS = ['parametres', 'panneau'];
+     PAGES   : une entrée par page. La clé est le code stocké dans
+               Admin.Acces ; le fichier est ce que le navigateur demande.
+     PRINCIPALES : les pages de lecture courante, à plat en haut du menu.
+     GROUPES : les familles repliables. `bas: true` place le groupe sous
+               l'espaceur, au pied de la barre.
 
-  /* Libellé et pictogramme des pages principales, pour que ce fichier
-     sache reconstituer une entrée de menu absente d'une barre latérale.
+     POUR AJOUTER UNE PAGE, deux gestes :
+       1. une entrée dans PAGES, et son code soit dans PRINCIPALES, soit
+          dans les `pages` d'un groupe ;
+       2. les lignes correspondantes dans Admin.Acces.
+     Rien d'autre, et aucun autre fichier à redéployer.
 
-     C'est ce qui permet d'ajouter une page sans rouvrir les cinq autres :
-     la page nouvelle écrit son propre menu complet, les anciennes se le
-     voient compléter au chargement. Une entrée déjà présente dans le HTML
-     n'est jamais dupliquée.
+     POUR AJOUTER UN GROUPE : une entrée dans GROUPES. Son pictogramme est
+     le contenu d'un <svg viewBox="0 0 24 24"> ; les pages existantes
+     portent déjà le style de ces groupes dans leur feuille CSS.
+     ───────────────────────────────────────────────────────────────────── */
 
-     POUR AJOUTER UNE PAGE, trois gestes :
-       1. une ligne dans CODE, dans FICHIER, et sa place dans ORDRE ;
-       2. une entrée ici — ou, si elle va sous l'engrenage, son code dans
-          SOUS et un <a class="nav-btn sous"> dans le sous-menu ;
-       3. les lignes correspondantes dans Admin.Acces.
-     Rien d'autre n'est à toucher. */
-  const NAV = {
-    dettes: {
-      libelle: 'Dettes',
+  const PAGES = {
+    activite:    { fichier: 'index.html',            libelle: 'Activité',
+      icone: '<path d="M3 12h4l3 8 4-16 3 8h4"/>' },
+    marge_brute: { fichier: 'marge-brute.html',      libelle: 'Marge brute',
+      icone: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>' },
+    historique:  { fichier: 'historique.html',       libelle: 'Historique P&L',
+      icone: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>'
+           + '<path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>' },
+    dettes:      { fichier: 'dettes.html',           libelle: 'Dettes',
       icone: '<path d="M12 3 2 8h20z"/><path d="M5 21V10M9 21V10M15 21V10M19 21V10"/>'
-           + '<path d="M3 21h18"/>'
-    }
+           + '<path d="M3 21h18"/>' },
+    apports:     { fichier: 'apports.html',          libelle: 'Apports d’affaire' },
+    parametres:  { fichier: 'parametres.html',       libelle: 'Mise à jour des tables' },
+    panneau:     { fichier: 'panneau-controle.html', libelle: 'Panneau de contrôle' }
   };
+
+  const PRINCIPALES = ['activite', 'marge_brute', 'historique', 'dettes'];
+
+  const GROUPES = [
+    { id: 'suivi', libelle: 'Suivi', pages: ['apports'],
+      icone: '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' },
+    { id: 'param', libelle: 'Paramètres', pages: ['parametres', 'panneau'], bas: true,
+      icone: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l'
+           + '.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 '
+           + '0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.'
+           + '33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 '
+           + '0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l'
+           + '-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-'
+           + '1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06'
+           + '-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 '
+           + '1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' }
+  ];
+
+  /* Déduits de ce qui précède : rien à tenir à jour en double. */
+  const CODE = {};
+  Object.keys(PAGES).forEach(c => CODE[PAGES[c].fichier.toLowerCase()] = c);
+  const FICHIER = {};
+  Object.keys(PAGES).forEach(c => FICHIER[c] = PAGES[c].fichier);
+  /* ordre d'affichage, qui sert aussi à choisir la page de repli */
+  const ORDRE = PRINCIPALES.concat(
+    GROUPES.reduce((t, g) => t.concat(g.pages), []));
+  const groupeDe = c => GROUPES.filter(g => g.pages.indexOf(c) >= 0)[0] || null;
 
   function pageCourante() {
     const f = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
@@ -94,62 +113,143 @@
     return (d.rows || []).map(l => l.f[0].v);
   }
 
-  /* Insère les entrées de menu que la page ne connaît pas encore, chacune
-     à sa place dans ORDRE : avant le premier lien d'une page qui la suit,
-     et à défaut avant l'espaceur qui précède l'engrenage. */
-  function completerMenu() {
-    const nav = document.querySelector('.sidebar-nav');
-    if (!nav) return;
-    const lien = f => nav.querySelector('a.nav-btn[href="' + f + '"]');
-    const principales = ORDRE.filter(c => SOUS.indexOf(c) < 0);
+  /* ─────────────────── construction du menu ─────────────────── */
 
-    principales.forEach((code, i) => {
-      const f = FICHIER[code];
-      if (!f || lien(f) || !NAV[code]) return;
-      const a = document.createElement('a');
-      a.className = 'nav-btn';
-      a.href = f;
-      a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
-                  + NAV[code].icone + '</svg>' + NAV[code].libelle;
+  const SVG = (contenu, cls) =>
+    '<svg' + (cls ? ' class="' + cls + '"' : '')
+    + ' viewBox="0 0 24 24" aria-hidden="true">' + contenu + '</svg>';
+
+  /* Chaque page marque son entrée courante à sa façon : un <a href="#">
+     sur parametres.html, un <button> sans lien sur marge-brute.html. Aucune
+     de ces formes n'est retrouvable par son href, et vouloir « compléter »
+     le menu y créerait un doublon. On reconnaît donc une entrée à son lien
+     OU à son libellé — les libellés sont distincts d'une page à l'autre, et
+     c'est la seule marque que toutes les formes ont en commun. */
+  const normal = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  function entree(portee, code) {
+    const parLien = portee.querySelector('a.nav-btn[href="' + PAGES[code].fichier + '"]');
+    if (parLien) return parLien;
+    const cible = normal(PAGES[code].libelle);
+    const cands = portee.querySelectorAll('a.nav-btn, button.nav-btn');
+    for (let i = 0; i < cands.length; i++)
+      if (!cands[i].classList.contains('nav-parent')
+          && normal(cands[i].textContent) === cible) return cands[i];
+    return null;
+  }
+  function manquante(portee, code, ici) {
+    return code !== ici && !entree(portee, code);
+  }
+
+  /* Le libellé est posé en nœud de texte et non en HTML : « Historique P&L »
+     porte une esperluette, qu'une concaténation dans innerHTML obligerait à
+     échapper — et qu'une comparaison de libellés retrouverait mal. */
+  function lienPage(code, sous) {
+    const a = document.createElement('a');
+    a.className = 'nav-btn' + (sous ? ' sous' : '');
+    a.href = PAGES[code].fichier;
+    if (!sous && PAGES[code].icone) a.innerHTML = SVG(PAGES[code].icone);
+    a.appendChild(document.createTextNode(PAGES[code].libelle));
+    return a;
+  }
+
+  /* Retrouve le groupe dans la page — il n'a pas d'identifiant fiable d'une
+     page à l'autre, on le reconnaît donc à ce qu'il contient — et le crée
+     s'il n'y est pas. */
+  function assurerGroupe(nav, g, ici) {
+    let el = null;
+    const candidats = nav.querySelectorAll('.nav-groupe');
+    for (let i = 0; i < candidats.length && !el; i++)
+      if (g.pages.some(c => entree(candidats[i], c))) el = candidats[i];
+
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'nav-groupe';
+      const b = document.createElement('button');
+      b.className = 'nav-btn nav-parent';
+      b.type = 'button';
+      b.setAttribute('aria-expanded', 'false');
+      b.setAttribute('aria-controls', 'sous-' + g.id);
+      b.innerHTML = SVG(g.icone);
+      b.appendChild(document.createTextNode(g.libelle));
+      b.insertAdjacentHTML('beforeend', SVG('<path d="m6 9 6 6 6-6"/>', 'chev'));
+      el.appendChild(b);
+      el.insertAdjacentHTML('beforeend',
+        '<div class="sous-menu" id="sous-' + g.id + '" hidden></div>');
+      /* avant l'espaceur pour un groupe de contenu, après pour un groupe
+         d'administration — l'espaceur pousse ce dernier en pied de barre. */
+      nav.insertBefore(el, g.bas ? null : (nav.querySelector('.spacer') || null));
+    }
+
+    const sm = el.querySelector('.sous-menu');
+    if (sm) g.pages.forEach(c => {
+      if (manquante(sm, c, ici)) sm.appendChild(lienPage(c, true));
+    });
+    return el;
+  }
+
+  /* Insère ce que la page ne connaît pas encore : les pages principales à
+     leur rang, puis les groupes. */
+  function completerMenu(ici) {
+    const nav = document.querySelector('.sidebar-nav');
+    if (!nav) return [];
+
+    PRINCIPALES.forEach((code, i) => {
+      if (!manquante(nav, code, ici) || !PAGES[code].icone) return;
       let avant = null;
-      for (let j = i + 1; j < principales.length && !avant; j++)
-        avant = lien(FICHIER[principales[j]]);
-      nav.insertBefore(a, avant || nav.querySelector('.spacer') || null);
+      for (let j = i + 1; j < PRINCIPALES.length && !avant; j++)
+        avant = entree(nav, PRINCIPALES[j]);
+      nav.insertBefore(lienPage(code, false),
+        avant || nav.querySelector('.spacer') || null);
     });
 
-    const ici = lien(FICHIER[pageCourante()] || '');
-    if (ici) ici.classList.add('active');
+    const groupes = GROUPES.map(g => ({ def: g, el: assurerGroupe(nav, g, ici) }));
+
+    const lien = entree(nav, ici);
+    if (lien) lien.classList.add('active');
+    return groupes;
   }
 
   /* Le menu suit les habilitations : une entrée non accordée disparaît.
      On agit sur le style en ligne plutôt que sur l'attribut hidden, que la
      règle .nav-btn{display:flex} de chaque page écraserait. */
-  function ajusterMenu(pages) {
+  function ajusterMenu(groupes, pages) {
     document.querySelectorAll('.nav-btn[href]').forEach(a => {
       const f = (a.getAttribute('href') || '').split('/').pop().toLowerCase();
       const c = CODE[f];
       if (!c) return;
       a.style.display = pages.indexOf(c) >= 0 ? '' : 'none';
     });
-    /* Le groupe « Paramètres » apparaît dès qu'une de ses entrées est
-       accordée ; ses entrées, elles, ont déjà été traitées ci-dessus
-       puisque ce sont des liens comme les autres. */
-    const grp = document.getElementById('grpParam');
-    if (grp) grp.style.display =
-      SOUS.some(c => pages.indexOf(c) >= 0) ? '' : 'none';
+    /* Un groupe apparaît dès qu'une de ses pages est accordée ; ses entrées,
+       elles, ont déjà été traitées ci-dessus puisque ce sont des liens comme
+       les autres. */
+    groupes.forEach(({ def, el }) => {
+      if (el) el.style.display =
+        def.pages.some(c => pages.indexOf(c) >= 0) ? '' : 'none';
+    });
   }
 
-  /* Le repli du groupe, identique sur toutes les pages. Le garde-fou évite
-     un double branchement si la page avait déjà son propre écouteur. */
-  function brancherGroupe() {
-    const b = document.getElementById('btnParam');
-    const s = document.getElementById('sousParam');
-    if (!b || !s || b.dataset.branche) return;
-    b.dataset.branche = '1';
-    b.addEventListener('click', () => {
-      const ouvert = b.getAttribute('aria-expanded') === 'true';
-      b.setAttribute('aria-expanded', String(!ouvert));
-      s.hidden = ouvert;
+  /* Le repli, identique sur tous les groupes. Le garde-fou évite un double
+     branchement si la page avait déjà son propre écouteur. */
+  function brancherGroupes(groupes, ici) {
+    groupes.forEach(({ def, el }) => {
+      if (!el) return;
+      const b = el.querySelector('.nav-parent');
+      const s = el.querySelector('.sous-menu');
+      if (!b || !s) return;
+      if (!b.dataset.branche) {
+        b.dataset.branche = '1';
+        b.addEventListener('click', () => {
+          const ouvert = b.getAttribute('aria-expanded') === 'true';
+          b.setAttribute('aria-expanded', String(!ouvert));
+          s.hidden = ouvert;
+        });
+      }
+      /* quand on est déjà dans la section, le groupe s'ouvre d'emblée */
+      if (def.pages.indexOf(ici) >= 0) {
+        b.setAttribute('aria-expanded', 'true');
+        s.hidden = false;
+      }
     });
   }
 
@@ -193,15 +293,9 @@
     catch (e) { motif = (e && e.message) || String(e); }
 
     if (pages.indexOf(ici) >= 0) {
-      completerMenu();
-      ajusterMenu(pages);
-      brancherGroupe();
-      /* quand on est déjà dans la section, le groupe s'ouvre d'emblée */
-      if (SOUS.indexOf(ici) >= 0) {
-        const b = document.getElementById('btnParam');
-        const s = document.getElementById('sousParam');
-        if (b && s) { b.setAttribute('aria-expanded', 'true'); s.hidden = false; }
-      }
+      const groupes = completerMenu(ici);
+      ajusterMenu(groupes, pages);
+      brancherGroupes(groupes, ici);
       return true;
     }
 
@@ -225,4 +319,7 @@
       motif);
     return false;
   };
+
+  /* Exposé pour les tests : la déclaration du menu, sans effet de bord. */
+  window.acces_menu = { PAGES, PRINCIPALES, GROUPES, ORDRE, CODE, groupeDe };
 })();
