@@ -145,7 +145,11 @@ body{
   padding:17px 18px 19px; min-width:0}
 .card.full{grid-column:1/-1}
 .ctitle{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--txt-2); margin:0 0 2px}
+/* sans sous-titre, le titre collait aux entêtes de colonnes : on rétablit
+   l'espacement que le sous-titre assurait, sans le doubler quand il existe */
+.ctitle + *{margin-top:16px}
 .csub{font-size:11.5px; color:var(--txt-3); margin:0 0 16px}
+.ctitle + .csub{margin-top:4px}
 .chart-box{position:relative; height:260px}
 .chart-box.haut{height:310px}
 .note{font-size:11.5px; color:var(--txt-3); margin-top:14px; font-style:italic}
@@ -269,9 +273,6 @@ body{
      tableau hors de sa carte */
   .tab th{white-space:normal}
   .tab .mini{font-size:10px}
-  /* la mention intragroupe passe sous le nom de l'entité plutôt que de
-     tirer la première colonne sur toute la largeur du téléphone */
-  .tab .bulle{display:block; width:max-content; margin-top:3px}
   .pop{max-width:calc(100vw - 20px)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -286,33 +287,106 @@ body{
 .jauge{justify-content:flex-end; white-space:nowrap}
 
 /* ---------- choix de l'apporteur, dans la barre de titre ---------- */
-.appo{display:inline-flex; align-items:center; margin-left:2px}
-.appo-s{appearance:none; -webkit-appearance:none; padding:5px 26px 5px 11px;
+.appo{position:relative; display:inline-flex; align-items:center; margin-left:2px}
+.appo-b{display:inline-flex; align-items:center; gap:7px; padding:5px 9px 5px 11px;
   border-radius:7px; border:1px solid var(--line-2); background:transparent;
   color:var(--txt); font:inherit; font-size:12px; cursor:pointer;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7186' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
-  background-repeat:no-repeat; background-position:right 7px center;
-  background-size:11px; transition:border-color .15s}
-.appo-s:hover{border-color:var(--txt-3)}
-.appo-s:focus-visible{outline:2px solid rgba(99,102,241,.55); outline-offset:1px}
-.appo-s option{background:#171a24; color:#e8eaf0}
-.appo-u{padding:5px 11px; border-radius:7px; border:1px solid var(--line);
-  color:var(--txt-2); font-size:12px}
+  transition:border-color .15s, background .15s}
+.appo-b:hover{border-color:var(--txt-3)}
+.appo-b.ouvert{border-color:var(--accent); background:rgba(99,102,241,.08)}
+.appo-b svg{width:12px; height:12px; flex:none; fill:none; stroke:var(--txt-3);
+  stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round;
+  transition:transform .15s}
+.appo-b.ouvert svg{transform:rotate(180deg); stroke:var(--accent)}
+.appo-b:focus-visible{outline:2px solid rgba(99,102,241,.55); outline-offset:1px}
+
+/* le panneau : même grammaire que les cartes — fond, bordure, ombre */
+.appo-p{position:absolute; top:calc(100% + 6px); left:0; z-index:50;
+  min-width:210px; padding:4px; border-radius:10px;
+  border:1px solid var(--line-2); background:var(--card);
+  box-shadow:0 14px 34px rgba(0,0,0,.45); display:flex;
+  flex-direction:column; gap:1px}
+/* [hidden] ne l'emporte pas sur display:flex — il faut le dire */
+.appo-p[hidden]{display:none}
+.appo-o{display:grid; grid-template-columns:1fr auto; align-items:baseline;
+  gap:2px 10px; width:100%; padding:7px 9px; border:0; border-radius:7px;
+  background:transparent; color:var(--txt); font:inherit; font-size:12px;
+  text-align:left; cursor:pointer; transition:background .12s}
+.appo-o:hover, .appo-o:focus-visible{background:rgba(255,255,255,.055); outline:none}
+.appo-o.on{background:rgba(99,102,241,.12)}
+.appo-l{grid-column:1}
+.appo-e{grid-column:1; grid-row:2; color:var(--txt-3); font-size:10.5px}
+.appo-c{grid-column:2; grid-row:1 / span 2; width:13px; height:13px; fill:none;
+  stroke:var(--accent); stroke-width:2.6; stroke-linecap:round;
+  stroke-linejoin:round; opacity:0; align-self:center}
+.appo-o.on .appo-c{opacity:1}
+
+/* ---------- base de facturation : clients × mois ---------- */
+/* 15 colonnes : on resserre la typographie et on fige la colonne client
+   pour qu'elle reste lisible pendant le défilement horizontal. */
+.fact{font-size:10.5px; min-width:880px}
+.fact th, .fact td{padding:4px 6px}
+.fact thead th{font-size:9.5px}
+.fact .fact-c{font-size:11px}
+.fact-c{text-align:left; white-space:nowrap; position:sticky; left:0;
+  background:var(--card); z-index:1; padding-right:14px!important}
+.fact thead .fact-c{z-index:2}
+.fact-m{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.fact-t{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums;
+  font-weight:600; padding-left:14px!important}
+.fact th.fact-t{font-weight:500}
+/* Trois niveaux de lecture : les montants mensuels s'effacent au profit
+   des totaux, et les prévisions s'effacent encore davantage. Si tout
+   partageait la teinte des prévisions, la frontière entre facturable et
+   projeté disparaîtrait — or c'est elle qui fait la valeur du tableau. */
+.fact tbody td.fact-m{color:var(--txt-2)}
+.fact .p{color:var(--txt-3)}
+.fact tbody td.p{color:var(--txt-3); opacity:.72}
+.fact th.p{color:var(--txt-3)}
+.fact th.v{opacity:.45}
+.fact td.neg{color:var(--warn)!important}
+.fact .nil{color:var(--txt-3); opacity:.3}
+.fact tbody td.fact-t{color:var(--txt)}
+.fact tbody td.fact-t.p{color:var(--txt-3); opacity:.85}
+.fact tr.somme td{border-top:1px solid var(--line-2); font-weight:600}
+.fact tr.somme .fact-c{font-weight:600}
+
+/* ---------- top 10 : la concentration doit se voir, pas se calculer ---------- */
+.palm{display:flex; flex-direction:column; gap:13px; margin-top:4px}
+.palm-l{display:flex; align-items:flex-start; gap:11px}
+.palm-r{flex:0 0 18px; text-align:right; color:var(--txt-3); font-size:11px;
+  font-variant-numeric:tabular-nums; padding-top:1px}
+.palm-c{flex:1; min-width:0}
+.palm-h{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.palm-n{color:var(--txt); font-size:12.5px; display:inline-flex;
+  align-items:baseline; gap:7px; min-width:0}
+.palm-g{color:var(--txt-3); font-size:10px; border:1px solid var(--line-2);
+  border-radius:4px; padding:0 4px; flex:none}
+/* pas de piste grise : répétée sur cinq lignes pleine largeur, elle
+   éclaircissait le bloc et le faisait paraître d'une autre teinte que
+   les cartes voisines. Seule la barre remplie subsiste. */
+.palm-b{height:4px; margin:6px 0 2px}
+.palm-b i{display:block; height:100%; border-radius:2px; background:var(--accent)}
+/* largeurs fixes : sans elles les deux colonnes de montants ondulent
+   d'une ligne à l'autre et les entêtes ne tombent pas en face */
+.palm-m{display:inline-flex; align-items:baseline; gap:30px; white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.palm-m b{color:var(--txt); font-size:12.5px; font-weight:600;
+  min-width:58px; text-align:right}
+.palm-m em{color:var(--txt-3); font-style:normal; font-size:11.5px;
+  min-width:82px; text-align:right}
+.palm-th{display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; padding-left:29px; margin-bottom:2px}
+.palm-th .palm-m b, .palm-th .palm-m em{color:var(--txt-3); font-size:10px;
+  font-weight:500; letter-spacing:.06em; text-transform:uppercase}
+
+.circuit{display:inline-block; padding:1px 7px; border-radius:5px;
+  border:1px solid var(--line-2); color:var(--txt-3); font-size:10px;
+  letter-spacing:.02em; white-space:nowrap}
+
 @media (max-width:640px){ .ans{flex-wrap:wrap} }
 
-/* ---------- frontière réalisé / prévisionnel ---------- */
-/* Le prévisionnel garde la teinte de l'accent mais perd en densité :
-   même famille de chiffre, degré de certitude différent. */
-.bascule{display:flex; align-items:center; flex-wrap:wrap; gap:7px;
-  margin:0 0 18px; padding:9px 14px; border-radius:9px;
-  border:1px solid var(--line); background:rgba(255,255,255,.015);
-  color:var(--txt-2); font-size:12.5px}
-.bascule b{color:var(--txt); font-weight:500}
-.bascule .b-pt{width:8px; height:8px; border-radius:2px; flex:none}
-.bascule .b-pt.r{background:var(--accent)}
-.bascule .b-pt.p{background:rgba(99,102,241,.34); border:1px solid rgba(99,102,241,.85)}
-.bascule .b-sep{width:1px; height:13px; background:var(--line-2); margin:0 5px}
-.bascule .b-nil{color:var(--txt-3)}
+/* ---------- prévisionnel : même teinte, moins de densité ---------- */
 .prev-t{color:var(--txt-2)}
 .leg .leg-p{background:rgba(99,102,241,.34); border:1px solid rgba(99,102,241,.85)}
 .pop-row.p em{color:var(--txt-3)}
@@ -411,13 +485,6 @@ body{
 
   <div class="wrap">
 
-    <div class="perim">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
-      <div><b>Périmètre</b> — <span id="perimTxt">clients apportés, et rétrocession due
-        à ce titre</span>. La marge est celle de l’entité bénéficiaire seule ; ni le
-        groupe, ni les pôles des autres pages. <span id="perimDet"></span></div>
-    </div>
-
     <div id="corps"><div class="attente">Lecture des apports…</div></div>
 
     <!-- une seule infobulle pour toute la page, hors du flux -->
@@ -494,12 +561,17 @@ const CLE = x => "TRIM(REGEXP_REPLACE(REGEXP_REPLACE(NORMALIZE(LOWER(IFNULL("
 const sq = v => "'" + String(v == null ? '' : v)
   .replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n]+/g, ' ') + "'";
 
-/* Un apporteur qui figure parmi ses propres clients apportés perçoit une
-   commission sur une affaire qu'il s'apporte : il faut le signaler.
-   La détection ne liste plus les noms en dur — elle reconnaît le nom de
-   l'apporteur courant, seul ou suivi d'un qualificatif (« Visiperf »,
-   « Visiperf - marketing »), sans attraper « Visiperfection ». */
-const INTRA = lib => '(' + CLE('raison_sociale') + ' = ' + CLE(sq(lib))
+/* Deux circuits de facturation coexistent sous un même accord.
+   Soit Orixa Media réalise ET facture le client en direct — un client
+   apporté au sens courant. Soit Orixa Media réalise la prestation mais
+   c'est l'APPORTEUR qui facture le client : la marge entre alors chez
+   Orixa Media sous un compte au nom de l'apporteur, et le chiffre
+   d'affaires s'annule côté apporteur, que la commission vient rémunérer.
+   Les deux donnent droit à la commission ; seul le circuit diffère.
+   La détection reconnaît le nom de l'apporteur, seul ou suivi d'un
+   qualificatif (« Visiperf », « Visiperf - mazda »), sans attraper
+   « Visiperfection ». */
+const RELAIS = lib => '(' + CLE('raison_sociale') + ' = ' + CLE(sq(lib))
   + ' OR STARTS_WITH(' + CLE('raison_sociale') + ', ' + CLE(sq(lib)) + " || ' '))";
 
 /* Le dernier mois réalisé fait la bascule : au-delà, on prend la prévision.
@@ -567,41 +639,56 @@ ORDER BY 1`;
    facturation intragroupe. */
 const Q_APPORTS = ap => `
 WITH ${CLOS(ent(ap.entite).mb)},
-app AS (
-  SELECT id_client, raison_sociale, taux, mois_debut, mois_fin
-  FROM \`${P}.Clients.Apports_affaires_mat\`
-  WHERE apporteur = ${sq(ap.code)} AND mois_debut IS NOT NULL
+ref AS (
+  SELECT Id_client, Id_groupe
+  FROM \`${P}.Clients.${ent(ap.entite).ref}\`
+  WHERE Id_groupe IS NOT NULL
 ),
-cles AS (
-  SELECT id_client, ${CLE('raison_sociale')} AS k FROM app
-  UNION DISTINCT
-  SELECT a.id_client, ${CLE('c.raison_sociale')}
+-- l'accord porte aussi son groupe : c'est la maille du classement, un
+-- même groupe pouvant réunir plusieurs comptes clients
+app AS (
+  SELECT a.id_client, a.raison_sociale, a.taux, a.mois_debut, a.mois_fin,
+         r.Id_groupe
+  FROM \`${P}.Clients.Apports_affaires_mat\` a
+  LEFT JOIN ref r ON r.Id_client = a.id_client
+  WHERE a.apporteur = ${sq(ap.code)} AND a.mois_debut IS NOT NULL
+),
+-- Réalisé des douze derniers mois clos : il sert de clé de répartition.
+-- Les marges négatives sont ramenées à zéro — un avoir ne doit pas
+-- produire une quote-part négative, qui inverserait l'allocation.
+base12 AS (
+  SELECT m.Id_client, GREATEST(SUM(m.mb), 0) AS mb
+  FROM \`${P}.Marge_brute.${ent(ap.entite).mb}\` m, clos
+  WHERE m.mois IS NOT NULL
+    AND m.mois >  DATE_SUB(clos.dernier, INTERVAL 12 MONTH)
+    AND m.mois <= clos.dernier
+  GROUP BY 1
+),
+-- Dénominateur : TOUS les clients du groupe, apportés ou non. C'est ce
+-- qui fait qu'un groupe partiellement apporté ne reçoit que sa part.
+grp AS (
+  SELECT r.Id_groupe, SUM(IFNULL(b.mb, 0)) AS mb
+  FROM ref r LEFT JOIN base12 b ON b.Id_client = r.Id_client
+  GROUP BY 1
+),
+poids AS (
+  SELECT a.id_client, a.raison_sociale, a.taux, a.mois_debut, a.mois_fin,
+         a.Id_groupe,
+         IFNULL(SAFE_DIVIDE(IFNULL(b.mb, 0), NULLIF(g.mb, 0)), 0) AS part
   FROM app a
-  JOIN \`${P}.Clients.${ent(ap.entite).ref}\` c ON c.Id_client = a.id_client
+  JOIN grp g ON g.Id_groupe = a.Id_groupe
+  LEFT JOIN base12 b ON b.Id_client = a.id_client
 ),
 src_prev AS (
-  SELECT ${CLE('p.client')} AS k, p.client AS libelle, p.mois, p.mb
+  SELECT p.Id_groupe, p.client AS libelle, p.mois, p.mb
   FROM \`${P}.Marge_brute.MB_Previsions_Groupe_mat\` p, clos
   WHERE p.entite = ${sq(ap.entite)}
     AND p.mois > clos.dernier
-    AND p.mb IS NOT NULL AND p.client IS NOT NULL
-),
-paire AS (
-  SELECT c.id_client, c.k, MIN(p.libelle) AS libelle, SUM(p.mb) AS tot
-  FROM cles c JOIN src_prev p USING (k)
-  GROUP BY 1, 2
-),
-une_cle AS (
-  SELECT * FROM paire
-  QUALIFY ROW_NUMBER() OVER (PARTITION BY id_client ORDER BY tot DESC, k) = 1
-),
-appariement AS (
-  SELECT * FROM une_cle
-  QUALIFY ROW_NUMBER() OVER (PARTITION BY k ORDER BY tot DESC, id_client) = 1
+    AND p.mb IS NOT NULL AND p.Id_groupe IS NOT NULL
 ),
 reel AS (
   SELECT m.mois, a.id_client, a.raison_sociale, a.taux, a.mois_debut,
-         FALSE AS prevu, CAST(NULL AS STRING) AS rattachement, m.mb
+         a.Id_groupe, FALSE AS prevu, CAST(NULL AS STRING) AS rattachement, m.mb
   FROM \`${P}.Marge_brute.${ent(ap.entite).mb}\` m
   JOIN app a ON a.id_client = m.Id_client
   WHERE m.mois IS NOT NULL
@@ -609,23 +696,24 @@ reel AS (
     AND (a.mois_fin IS NULL OR m.mois <= a.mois_fin)
 ),
 prev AS (
-  SELECT p.mois, a.id_client, a.raison_sociale, a.taux, a.mois_debut,
-         TRUE AS prevu, b.libelle AS rattachement, p.mb
+  SELECT p.mois, w.id_client, w.raison_sociale, w.taux, w.mois_debut,
+         w.Id_groupe, TRUE AS prevu, p.libelle AS rattachement, p.mb * w.part AS mb
   FROM src_prev p
-  JOIN appariement b USING (k)
-  JOIN app a ON a.id_client = b.id_client
-  WHERE p.mois >= a.mois_debut
-    AND (a.mois_fin IS NULL OR p.mois <= a.mois_fin)
+  JOIN poids w USING (Id_groupe)
+  WHERE w.part > 0
+    AND p.mois >= w.mois_debut
+    AND (w.mois_fin IS NULL OR p.mois <= w.mois_fin)
 )
 SELECT FORMAT_DATE('%Y-%m', mois)       AS mois,
        id_client, raison_sociale, taux,
        FORMAT_DATE('%Y-%m', mois_debut) AS depuis,
-       ${INTRA(ap.libelle)}             AS intra,
+       ${RELAIS(ap.libelle)}            AS relais,
+       CAST(Id_groupe AS STRING)        AS id_groupe,
        prevu,
        MAX(rattachement)                AS rattachement,
        ROUND(SUM(mb), 2)                AS mb
 FROM (SELECT * FROM reel UNION ALL SELECT * FROM prev)
-GROUP BY 1, 2, 3, 4, 5, 6, 7
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
 ORDER BY 1`;
 
 /* Tous les accords, y compris ceux qui n'ont ni réalisé ni prévision.
@@ -635,7 +723,7 @@ const Q_ACCORDS = ap => `
 SELECT id_client, raison_sociale, taux,
        FORMAT_DATE('%Y-%m', mois_debut) AS depuis,
        FORMAT_DATE('%Y-%m', mois_fin)   AS jusqua,
-       ${INTRA(ap.libelle)}             AS intra
+       ${RELAIS(ap.libelle)}            AS relais
 FROM \`${P}.Clients.Apports_affaires_mat\`
 WHERE apporteur = ${sq(ap.code)}
 ORDER BY raison_sociale`;
@@ -659,6 +747,8 @@ const echappe = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const nf = new Intl.NumberFormat('fr-FR');
+const MOIS_COURT = ['jan','fév','mar','avr','mai','jun',
+                    'jul','aoû','sep','oct','nov','déc'];
 const kgros = v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(1).replace('.',',') + ' M€'
                                       : nf.format(Math.round(v/1000)) + ' K€';
 const keur  = v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2).replace('.',',') + ' M€'
@@ -700,7 +790,8 @@ function agreger(total, apports, accords){
     mois: l.mois, id: l.id_client, nom: l.raison_sociale,
     taux: Number(l.taux) || 0,
     depuis: l.depuis,
-    intra: vrai(l.intra),
+    relais: vrai(l.relais),
+    groupe: l.id_groupe || null,
     prevu: vrai(l.prevu),
     rattach: l.rattachement || null,
     mb: Number(l.mb) || 0
@@ -709,7 +800,7 @@ function agreger(total, apports, accords){
   /* tous les accords, actifs ou dormants */
   const ACC = (accords || []).map(l => ({
     id: l.id_client, nom: l.raison_sociale, taux: Number(l.taux) || 0,
-    depuis: l.depuis, jusqua: l.jusqua || null, intra: vrai(l.intra)
+    depuis: l.depuis, jusqua: l.jusqua || null, relais: vrai(l.relais)
   }));
 
   const annees = [...new Set(Object.keys(T).map(m => m.slice(0, 4)))].sort();
@@ -719,7 +810,7 @@ function agreger(total, apports, accords){
      sont la part prévisionnelle, isolable à tout moment. */
   const parAn = {};
   annees.forEach(a => parAn[a] = {total:0, totalP:0, apporte:0, apporteP:0,
-                                  retro:0, retroP:0, intraMb:0, intraRetro:0,
+                                  retro:0, retroP:0,
                                   clients:{}, mois:{}});
   Object.keys(T).forEach(m => {
     const a = m.slice(0, 4), x = parAn[a];
@@ -734,9 +825,8 @@ function agreger(total, apports, accords){
     const r = l.mb * l.taux;
     x.apporte += l.mb; x.retro += r;
     if (l.prevu) { x.apporteP += l.mb; x.retroP += r; }
-    if (l.intra) { x.intraMb += l.mb; x.intraRetro += r; }
     const c = x.clients[l.id] || (x.clients[l.id] =
-      {nom:l.nom, taux:l.taux, depuis:l.depuis, intra:l.intra,
+      {nom:l.nom, taux:l.taux, depuis:l.depuis, relais:l.relais, groupe:l.groupe,
        mb:0, mbP:0, retro:0, retroP:0, mois:0, moisP:0, rattach:null});
     c.mb += l.mb; c.retro += r;
     if (l.prevu) { c.mbP += l.mb; c.retroP += r; c.moisP += 1;
@@ -771,45 +861,6 @@ function comparable(x, prec){
   return r;
 }
 
-/* Où passe la frontière entre ce qui est facturé et ce qui est espéré.
-   Le lecteur doit le savoir avant de regarder le moindre montant.
-   Le rattachement des prévisions se fait par le nom : on dit combien
-   d'accords en bénéficient, pour que personne ne prenne un silence
-   pour un zéro. */
-function bandeauBascule(x){
-  const mois = Object.keys(x.mois).sort();
-  const clos = mois.filter(m => !x.mois[m].prevu);
-  const prev = mois.filter(m =>  x.mois[m].prevu);
-  const avecPrev = Object.values(x.clients).filter(c => c.mbP > 0).length;
-  if (!prev.length)
-    return '<div class="bascule"><span class="b-pt r"></span>'
-         + 'Exercice entièrement réalisé' + (clos.length
-             ? ' · ' + libMois(clos[0]) + ' → ' + libMois(clos[clos.length - 1]) : '')
-         + '. Aucune prévision n’entre dans ces montants.</div>';
-  if (!clos.length)
-    return '<div class="bascule"><span class="b-pt p"></span>'
-         + 'Exercice <b>entièrement prévisionnel</b> · ' + libMois(prev[0]) + ' → '
-         + libMoisLong(prev[prev.length - 1])
-         + '<span class="b-sep"></span>'
-         + (avecPrev
-             ? '<span>' + avecPrev + ' accord' + (avecPrev > 1 ? 's' : '')
-               + ' rattaché' + (avecPrev > 1 ? 's' : '') + ' à une prévision</span>'
-             : '<span class="b-nil">aucun accord rattaché à une prévision</span>')
-         + '</div>';
-  return '<div class="bascule">'
-    + '<span class="b-pt r"></span>réalisé jusqu’à <b>'
-    + libMoisLong(clos[clos.length - 1]) + '</b>'
-    + '<span class="b-sep"></span>'
-    + '<span class="b-pt p"></span>prévisionnel de <b>' + libMois(prev[0])
-    + '</b> à <b>' + libMoisLong(prev[prev.length - 1]) + '</b>'
-    + '<span class="b-sep"></span>'
-    + (avecPrev
-        ? '<span>' + avecPrev + ' accord' + (avecPrev > 1 ? 's' : '')
-          + ' rattaché' + (avecPrev > 1 ? 's' : '') + ' à une prévision</span>'
-        : '<span class="b-nil">aucun accord rattaché à une prévision</span>')
-    + '</div>';
-}
-
 function vueKpis(x, prec){
   const net = x.apporte - x.retro;
   const c = comparable(x, prec);
@@ -828,8 +879,8 @@ function vueKpis(x, prec){
     + echappe(APPO.entite) + '</div>'
     + '<div class="kpi-rows">'
     + '<div class="kpi-r"><span>dont prévisionnel</span><b class="'
-    + (x.apporteP > 0 ? 'prev-t' : 'nil') + '">'
-    + (x.apporteP > 0 ? keur(x.apporteP) : '—') + '</b></div>'
+    + (x.apporteP !== 0 ? 'prev-t' : 'nil') + '">'
+    + (x.apporteP !== 0 ? keur(x.apporteP) : '—') + '</b></div>'
     + '<div class="kpi-r"><span>réalisé vs N-1' + base + '</span>'
     + ecart(x.apporte - x.apporteP, c && c.apporte) + '</div>'
     + '</div></div>'
@@ -841,8 +892,8 @@ function vueKpis(x, prec){
     + '<div class="kpi-r"><span>acquise sur réalisé</span><b>'
     + eur(x.retro - x.retroP) + '</b></div>'
     + '<div class="kpi-r"><span>attendue sur prévisions</span><b class="'
-    + (x.retroP > 0 ? 'prev-t' : 'nil') + '">'
-    + (x.retroP > 0 ? eur(x.retroP) : '—') + '</b></div>'
+    + (x.retroP !== 0 ? 'prev-t' : 'nil') + '">'
+    + (x.retroP !== 0 ? eur(x.retroP) : '—') + '</b></div>'
     + '</div></div>'
 
     + '<div class="kpi k3"><div class="kpi-l">Marge nette d’apport</div>'
@@ -862,32 +913,22 @@ function vueKpis(x, prec){
     + '<div class="kpi-s maj-s" style="margin-top:6px">'
     + '<span style="color:var(--txt-3)">interrogation des tables</span></div></div>'
 
-    + '</section>'
-
-    + bandeauBascule(x)
-
-    + (x.intraMb > 0
-        ? '<div class="alerte"><svg viewBox="0 0 24 24" aria-hidden="true">'
-          + '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>'
-          + '<path d="M12 9v4M12 17h.01"/></svg>'
-          + '<div><b>' + echappe(APPO.libelle) + ' figure parmi les clients '
-          + 'apportés.</b> '
-          + keur(x.intraMb) + ' de marge et ' + eur(x.intraRetro) + ' de rétrocession '
-          + 'portent sur des prestations qu’' + echappe(APPO.entite) + ' facture à '
-          + echappe(APPO.libelle) + ' elle-même. ' + echappe(APPO.libelle) + ' perçoit '
-          + 'donc une commission sur une affaire qu’elle s’apporte : '
-          + 'ces lignes sont signalées dans le tableau et doivent être arbitrées.</div></div>'
-        : '');
+    + '</section>';
 }
 
+/* Les exercices antérieurs à celui-ci sont écartés du tableau de tendance :
+   avant 2025 les accords n'étaient pas formalisés et la part apportée
+   restait sous 1 %, ce qui écrase l'échelle sans rien apprendre.
+   L'exercice affiché est toujours inclus, même s'il est plus ancien, pour
+   que la ligne « affiché » ne disparaisse jamais du tableau. */
+const PREMIER_EXERCICE = '2025';
+
 function vuePoids(D){
-  const ans = D.annees.slice().sort();
+  const ans = D.annees.slice().sort()
+                .filter(a => a >= PREMIER_EXERCICE || a === ANNEE);
   const max = ans.reduce((m, a) => Math.max(m, D.parAn[a].total), 0) || 1;
   return '<section class="card">'
     + '<h2 class="ctitle">Poids dans l’activité d’' + echappe(APPO.entite) + '</h2>'
-    + '<p class="csub">Part de la marge brute issue de clients apportés par '
-    + echappe(APPO.libelle) + ', '
-    + 'exercice par exercice. La question n’est pas le montant, mais la tendance.</p>'
     + '<div class="tab-wrap"><table class="tab"><thead><tr>'
     + '<th>Exercice</th><th class="opt">Marge totale</th><th>Dont apportée</th>'
     + '<th>Part</th><th class="opt2">Rétrocession</th></tr></thead><tbody>'
@@ -908,10 +949,50 @@ function vuePoids(D){
           + '<td class="opt2">' + keur(x.retro) + '</td></tr>';
       }).join('')
     + '</tbody></table></div>'
-    + '<p class="note">La marge totale est celle d’' + echappe(APPO.entite)
-    + '. Au-delà du dernier '
-    + 'mois clos, elle intègre les prévisions saisies par les account managers ; '
-    + 'aucun mois n’est extrapolé par la page elle-même.</p>'
+    + '</section>';
+}
+
+/* Top 10 par marge apportée. Le tableau du bas dit la même chose en
+   colonnes ; ici la barre rend la CONCENTRATION visible d'un coup d'œil,
+   ce qu'une colonne de pourcentages ne fait pas. Un portefeuille où le
+   premier client pèse plus que les neuf suivants réunis se voit, il ne
+   se calcule pas. */
+function vueTop(x){
+  /* Classement par GROUPE et non par compte : « Mazda Automobiles France »
+     et « Visiperf - mazda » sont le même client commercial, les séparer
+     fragmente le palmarès et sous-estime la concentration.
+     Faute de table de libellés de groupe, l'étiquette est la raison
+     sociale du compte le plus important du groupe ; les comptes sans
+     groupe restent seuls sur leur ligne. */
+  const par = {};
+  Object.entries(x.clients).forEach(([id, c]) => {
+    const k = c.groupe || ('seul:' + id);
+    const g = par[k] || (par[k] = {id:k, nom:c.nom, mb:0, retro:0, n:0, tete:-Infinity});
+    g.mb += c.mb; g.retro += c.retro; g.n += 1;
+    if (c.mb > g.tete) { g.tete = c.mb; g.nom = c.nom; }
+  });
+  const cs = Object.values(par).sort((a, b) => b.mb - a.mb);
+  const top = cs.slice(0, 5);
+  const max = top.reduce((m, c) => Math.max(m, c.mb), 0) || 1;
+  const reste = cs.slice(5);
+  const sReste = reste.reduce((t, c) => t + c.mb, 0);
+
+  return '<section class="card">'
+    + '<h2 class="ctitle">Top 5 des groupes apportés</h2>'
+    + '<div class="palm">'
+    + '<div class="palm-th"><span></span><span class="palm-m">'
+    + '<b>MB</b><em>Rétrocession</em></span></div>'
+    + top.map((c, i) => '<div class="palm-l">'
+        + '<span class="palm-r">' + (i + 1) + '</span>'
+        + '<div class="palm-c">'
+        + '<div class="palm-h"><span class="palm-n">' + echappe(c.nom)
+        + (c.n > 1 ? '<span class="palm-g">+' + (c.n - 1) + '</span>' : '') + '</span>'
+        + '<span class="palm-m"><b>' + keur(c.mb) + '</b>'
+        + '<em>' + keur(c.retro) + '</em></span></div>'
+        + '<div class="palm-b"><i style="width:'
+        + Math.max(1.5, c.mb / max * 100).toFixed(1) + '%"></i></div>'
+        + '</div></div>').join('')
+    + '</div>'
     + '</section>';
 }
 
@@ -953,9 +1034,90 @@ function piegeCouverture(x){
     + '<b style="color:var(--txt-2)">À lire avec précaution.</b> La part apportée '
     + 'tombe à ' + (pP * 100).toFixed(1).replace('.', ',') + ' % sur les mois prévus, '
     + 'contre ' + (pR * 100).toFixed(1).replace('.', ',') + ' % sur le réalisé. '
-    + 'Ce n’est pas un recul de l’apport : seuls <b style="color:var(--txt-2)">'
-    + avec + ' accords sur ' + tot + '</b> sont rattachés à une prévision. '
+    + 'Ce n’est pas un recul de l’apport : ' + (avec > 1 ? 'seuls ' : 'seul ')
+    + '<b style="color:var(--txt-2)">' + avec + ' accord' + (avec > 1 ? 's' : '')
+    + ' sur ' + tot + '</b> ' + (avec > 1 ? 'sont rattachés' : 'est rattaché')
+    + ' à une prévision. '
     + 'L’écart mesure l’étendue de la saisie prévisionnelle, pas l’activité.</p>';
+}
+
+/* Base de facturation : une ligne par client, une colonne par mois.
+   Deux partis pris, parce que ce tableau sert à émettre des factures.
+
+   1. Les mois prévisionnels sont grisés et totalisés à part. Facturer une
+      prévision serait facturer ce qui n'a pas été produit ; les deux
+      natures ne doivent pas se confondre dans une même colonne « total ».
+
+   2. Chaque cellule est arrondie à l'euro, et les totaux somment les
+      cellules ARRONDIES, non les valeurs exactes. Le tableau tombe donc
+      juste à l'euro près dans les deux sens. Un total calculé sur les
+      valeurs exactes afficherait un écart d'un ou deux euros avec la
+      somme visible des cellules — inacceptable sur une pièce comptable. */
+function vueFacturation(x){
+  const an = D.A.filter(l => l.mois.slice(0, 4) === ANNEE);
+  if (!an.length) return '';
+
+  const mois = [];
+  for (let m = 1; m <= 12; m++) mois.push(ANNEE + '-' + String(m).padStart(2, '0'));
+  const estPrevu = m => { const r = x.mois[m]; return r ? !!r.prevu : false; };
+  const connu    = m => !!x.mois[m];
+
+  const par = {};
+  an.forEach(l => {
+    const c = par[l.id] || (par[l.id] = {nom: l.nom, taux: l.taux, m: {}});
+    c.m[l.mois] = (c.m[l.mois] || 0) + l.mb * l.taux;
+  });
+  /* arrondi d'abord, somme ensuite */
+  const cs = Object.values(par).map(c => {
+    const cel = {}; let du = 0, pr = 0;
+    mois.forEach(m => {
+      if (c.m[m] === undefined) return;
+      const v = Math.round(c.m[m]);
+      cel[m] = v;
+      if (estPrevu(m)) pr += v; else du += v;
+    });
+    return {nom: c.nom, taux: c.taux, cel, du, pr};
+  }).filter(c => c.du !== 0 || c.pr !== 0)
+    .sort((a, b) => (b.du + b.pr) - (a.du + a.pr));
+
+  /* le même total, calculé sans arrondi intermédiaire : l'écart avec la
+     somme des cellules est dû aux arrondis, et il faut le dire */
+  const exactDu = an.filter(l => !l.prevu)
+                    .reduce((t, l) => t + l.mb * l.taux, 0);
+
+  const col = {}, parMois = m => cs.reduce((t, c) => t + (c.cel[m] || 0), 0);
+  mois.forEach(m => col[m] = parMois(m));
+  const totDu = cs.reduce((t, c) => t + c.du, 0);
+  const totPr = cs.reduce((t, c) => t + c.pr, 0);
+  const n = v => v === undefined || v === 0 ? '<span class="nil">·</span>'
+                                            : nf.format(v);
+
+  return '<section class="card full">'
+    + '<h2 class="ctitle">Base de facturation mensuelle · ' + ANNEE
+    + ' — Commissions</h2>'
+    + '<div class="tab-wrap"><table class="tab fact"><thead><tr>'
+    + '<th class="fact-c">Client</th>'
+    + mois.map(m => '<th class="fact-m' + (estPrevu(m) ? ' p' : '')
+        + (connu(m) ? '' : ' v') + '">' + MOIS_COURT[Number(m.slice(5)) - 1]
+        + '</th>').join('')
+    + '<th class="fact-t" title="Somme des douze mois, arrondis à l’euro.'
+    + ' Les mois grisés sont prévisionnels et ne sont pas facturables.">'
+    + 'Total</th>'
+    + '</tr></thead><tbody>'
+    + cs.map(c => '<tr>'
+        + '<td class="fact-c">' + echappe(c.nom) + '</td>'
+        + mois.map(m => '<td class="fact-m' + (estPrevu(m) ? ' p' : '')
+            + (c.cel[m] < 0 ? ' neg' : '') + '">' + n(c.cel[m]) + '</td>').join('')
+        + '<td class="fact-t">'
+        + (c.du + c.pr !== 0 ? nf.format(c.du + c.pr) : '—') + '</td>'
+        + '</tr>').join('')
+    + '<tr class="somme">'
+    + '<td class="fact-c">Total</td>'
+    + mois.map(m => '<td class="fact-m' + (estPrevu(m) ? ' p' : '')
+        + (col[m] < 0 ? ' neg' : '') + '">' + n(col[m]) + '</td>').join('')
+    + '<td class="fact-t">' + nf.format(totDu + totPr) + '</td>'
+    + '</tr></tbody></table></div>'
+    + '</section>';
 }
 
 function vueClients(x){
@@ -964,29 +1126,24 @@ function vueClients(x){
     .sort((a, b) => b.mb - a.mb);
   const actifs = new Set(cs.map(c => c.id));
   const dormants = (D && D.ACC ? D.ACC : []).filter(a => !actifs.has(a.id));
-  const unP = x.apporteP > 0;
+  const unP = x.apporteP !== 0;
 
   return '<section class="card full">'
     + '<h2 class="ctitle">Détail par accord</h2>'
-    + '<p class="csub">' + cs.length + ' accord' + (cs.length > 1 ? 's' : '')
-    + ' ayant de l’activité sur l’exercice, classé' + (cs.length > 1 ? 's' : '')
-    + ' par marge décroissante. Survolez un montant pour le détail mensuel.</p>'
     + '<div class="tab-wrap"><table class="tab"><thead><tr>'
     + '<th>Client</th><th class="opt">Apporté depuis</th>'
     + '<th>Réalisé</th>' + (unP ? '<th>Prévu</th>' : '')
     + '<th>Marge brute</th><th class="opt">Taux</th><th>Rétrocession</th>'
     + '<th class="opt2">Poids</th></tr></thead><tbody>'
     + cs.map(c => '<tr>'
-        + '<td><span class="pt"><i style="background:'
-        + (c.intra ? 'var(--warn)' : 'var(--accent)') + '"></i>' + echappe(c.nom) + '</span>'
-        + (c.intra ? '<span class="mini"><span class="bulle">intragroupe</span></span>' : '')
+        + '<td><span class="pt"><i style="background:var(--accent)"></i>'
+        + echappe(c.nom) + '</span>'
         + '</td>'
         + '<td class="opt">' + (c.depuis ? libMoisLong(c.depuis) : '—') + '</td>'
-        + '<td>' + (c.mb - c.mbP > 0 ? eur(c.mb - c.mbP) : '<span class="nil">—</span>')
-        + '<span class="mini">' + c.mois + ' mois facturé'
-        + (c.mois > 1 ? 's' : '') + '</span></td>'
+        + '<td>' + (c.mb - c.mbP !== 0 ? eur(c.mb - c.mbP)
+                                          : '<span class="nil">—</span>') + '</td>'
         + (unP
-            ? '<td>' + (c.mbP > 0
+            ? '<td>' + (c.mbP !== 0
                 ? '<span class="prev-t">' + eur(c.mbP) + '</span>'
                   + '<span class="mini" title="nom sous lequel la prévision a été retrouvée">'
                   + 'via « ' + echappe(c.rattach || c.nom) + ' »</span>'
@@ -995,8 +1152,9 @@ function vueClients(x){
         + '<td><b class="survol" data-cli="' + echappe(c.id) + '">' + eur(c.mb) + '</b></td>'
         + '<td class="opt">' + (c.taux * 100).toFixed(1).replace('.', ',') + ' %</td>'
         + '<td>' + eur(c.retro)
-        + (c.retroP > 0 ? '<span class="mini">dont ' + eur(c.retroP) + ' prévisionnel</span>'
-                        : '') + '</td>'
+        + (c.retroP !== 0
+            ? '<span class="mini">dont ' + eur(c.retroP) + ' prévisionnel</span>'
+            : '') + '</td>'
         + '<td class="opt2">' + pct(c.mb, x.apporte) + '</td>'
         + '</tr>').join('')
     + '<tr class="somme"><td>Total</td><td class="opt"></td>'
@@ -1006,21 +1164,6 @@ function vueClients(x){
     + '<td>' + eur(x.retro) + '</td><td class="opt2"></td></tr>'
     + '</tbody></table></div>'
 
-    /* Un accord sans activité n'est pas une anomalie : c'est un dossier
-       dormant. On l'énonce sans en faire une alerte. */
-    + (dormants.length
-        ? '<details class="dormants"><summary>'
-          + '<b>' + dormants.length + '</b> accord' + (dormants.length > 1 ? 's' : '')
-          + ' sans activité sur l’exercice'
-          + '<span class="d-fl">ni marge facturée, ni prévision rattachée</span>'
-          + '</summary><div class="d-liste">'
-          + dormants.map(a => '<span class="d-item">' + echappe(a.nom)
-              + '<em>' + (a.taux * 100).toFixed(1).replace('.', ',') + ' %</em></span>').join('')
-          + '</div><p class="note" style="margin:10px 0 0">Un accord peut rester '
-          + 'sans activité parce que le client ne facture pas sur la période, ou '
-          + 'parce qu’aucune prévision n’a été saisie à son nom. Les deux cas sont '
-          + 'normaux et n’affectent pas la rétrocession due.</p></details>'
-        : '')
     + '</section>';
 }
 
@@ -1185,24 +1328,60 @@ async function actualisation(tok, ap){
 function selecteurApporteurs(){
   const el = document.getElementById('appo');
   if (!el) return;
-  if (APPOS.length < 2 && APPO){          /* un seul : on l'énonce, sans menu */
-    el.innerHTML = '<span class="appo-u">' + echappe(APPO.libelle) + '</span>';
-    return;
-  }
-  el.innerHTML = '<select class="appo-s" id="selAppo" aria-label="Apporteur">'
-    + APPOS.map(a => '<option value="' + echappe(a.code) + '"'
-        + (APPO && a.code === APPO.code ? ' selected' : '') + '>'
-        + echappe(a.libelle) + '</option>').join('')
-    + '</select>';
-  el.querySelector('select').onchange = e => {
-    const a = APPOS.find(x => x.code === e.target.value);
+  /* Un <select> natif s'ouvre avec le rendu du système : ni la teinte,
+     ni les bordures, ni l'état sélectionné ne sont atteignables par la
+     feuille de style. On construit donc le panneau nous-mêmes. */
+  el.innerHTML =
+    '<button type="button" class="appo-b" id="appoB" aria-haspopup="listbox" '
+    + 'aria-expanded="false"><span>' + echappe(APPO.libelle) + '</span>'
+    + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'
+    + '</button>'
+    + '<div class="appo-p" id="appoP" role="listbox" hidden>'
+    + APPOS.map(a => '<button type="button" role="option" class="appo-o'
+        + (a.code === APPO.code ? ' on' : '') + '" data-code="' + echappe(a.code) + '"'
+        + ' aria-selected="' + (a.code === APPO.code) + '">'
+        + '<span class="appo-l">' + echappe(a.libelle) + '</span>'
+        + '<span class="appo-e">' + echappe(a.entite) + '</span>'
+        + '<svg viewBox="0 0 24 24" aria-hidden="true" class="appo-c">'
+        + '<path d="M20 6L9 17l-5-5"/></svg></button>').join('')
+    + '</div>';
+
+  const b = el.querySelector('#appoB'), p = el.querySelector('#appoP');
+  const ouvrir = v => { p.hidden = !v; b.setAttribute('aria-expanded', String(v));
+                        b.classList.toggle('ouvert', v);
+                        if (v) (p.querySelector('.appo-o.on') || p.firstChild).focus(); };
+
+  b.onclick = e => { e.stopPropagation(); ouvrir(p.hidden); };
+  p.querySelectorAll('.appo-o').forEach(o => o.onclick = e => {
+    e.stopPropagation();
+    ouvrir(false);
+    const a = APPOS.find(x => x.code === o.dataset.code);
     if (a && a.code !== APPO.code) charger(a);
-  };
+  });
+  /* fermer au clic ailleurs et à Échap : sans cela le panneau reste
+     ouvert derrière le reste de la page */
+  document.addEventListener('click', ev => {
+    if (!p.hidden && !el.contains(ev.target)) ouvrir(false);
+  });
+  el.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && !p.hidden) { ouvrir(false); b.focus(); }
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){
+      const l = [...p.querySelectorAll('.appo-o')];
+      const i = l.indexOf(document.activeElement);
+      if (i >= 0){ ev.preventDefault();
+        l[(i + (ev.key === 'ArrowDown' ? 1 : l.length - 1)) % l.length].focus(); }
+    }
+  });
 }
 
 function selecteurAnnees(){
   const el = document.getElementById('ans');
-  el.innerHTML = D.annees.slice().reverse().map(a =>
+  /* Même borne que le tableau de tendance : les exercices antérieurs
+     restent chargés, mais ne sont plus proposés. L'exercice affiché est
+     toujours offert, pour ne jamais laisser le sélecteur sans sa valeur. */
+  el.innerHTML = D.annees
+    .filter(a => a >= PREMIER_EXERCICE || a === ANNEE)
+    .reverse().map(a =>
     '<button type="button" class="an' + (a === ANNEE ? ' on' : '') + '" data-an="' + a
     + '">' + a + '</button>').join('');
   el.querySelectorAll('button').forEach(b =>
@@ -1214,14 +1393,9 @@ function rendre(){
   const prec = D.parAn[String(Number(ANNEE) - 1)];
   document.getElementById('corps').innerHTML =
       vueKpis(x, prec)
-    + '<div class="grid">' + vuePoids(D) + vueMois(x) + '</div>'
-    + vueClients(x)
-    + '<p class="note">La rétrocession due à ' + echappe(APPO.libelle)
-    + ' est un <b>flux intragroupe</b> : elle constitue un produit chez '
-    + echappe(APPO.libelle) + ' et une charge chez ' + echappe(APPO.entite)
-    + ', et s’élimine au niveau consolidé, comme les comptes courants de la page '
-    + 'Dettes. Les accords sans terme restent dus : un client apporté il y a dix ans '
-    + 'génère encore une commission aujourd’hui.</p>';
+    + '<div class="grid">' + vuePoids(D) + vueTop(x) + '</div>'
+    + vueFacturation(x)
+    + vueClients(x);
 
   selecteurApporteurs();
   selecteurAnnees();
@@ -1229,15 +1403,10 @@ function rendre(){
   document.querySelectorAll('.tab b.survol[data-cli]').forEach(b =>
     attacherPop(b, () => popClient(b.dataset.cli)));
 
-  document.getElementById('perimTxt').innerHTML =
-    'clients d’' + echappe(APPO.entite) + ' apportés par <b>' + echappe(APPO.libelle)
-    + '</b>, et rétrocession due à ce titre';
-  document.getElementById('perimDet').innerHTML =
-    'Exercice ' + ANNEE + ' : <b>' + Object.keys(x.clients).length + ' clients</b> '
-    + 'sur les accords en vigueur.';
-  document.getElementById('topS').textContent =
-    kgros(x.apporte) + ' apportés · ' + kgros(x.retro) + ' de rétrocession · '
-    + pct(x.apporte, x.total) + ' de la marge d’' + APPO.entite;
+  /* La barre de titre reste muette quand tout va bien : les chiffres sont
+     dans les pavés, juste en dessous. Elle n'est utilisée que pour dire
+     qu'une lecture a échoué. */
+  document.getElementById('topS').textContent = '';
 }
 
 /* Charge — ou recharge — la page pour un apporteur donné. Changer
@@ -1276,9 +1445,6 @@ async function charger(a){
   }
   if (!accords.length && !apports.length){
     document.getElementById('topS').textContent = 'aucun accord';
-    document.getElementById('perimTxt').innerHTML =
-      'clients d’' + echappe(a.entite) + ' apportés par <b>' + echappe(a.libelle) + '</b>';
-    document.getElementById('perimDet').textContent = '';
     document.getElementById('corps').innerHTML =
       '<div class="panne"><b>Aucun accord d’apport pour ' + echappe(a.libelle) + '</b>'
       + 'Cet apporteur est déclaré dans le classeur Apporteurs, mais aucune ligne du '
