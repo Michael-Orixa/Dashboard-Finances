@@ -1426,8 +1426,12 @@ async function charger(a){
     APPO = a; selecteurApporteurs();
     return;
   }
+  /* Au premier chargement le message d'attente est déjà dans la page :
+     le remplacer ne ferait que clignoter et allonger la perception du
+     délai. On ne l'écrit que lors d'un changement d'apporteur. */
+  const premier = !D;
   APPO = a;
-  document.getElementById('corps').innerHTML =
+  if (!premier) document.getElementById('corps').innerHTML =
     '<div class="attente">Lecture des apports de ' + echappe(a.libelle) + '…</div>';
 
   const [total, apports, accords] = await Promise.all([
@@ -1473,9 +1477,19 @@ async function init(){
     if (u.error) throw new Error(u.error.message);
     document.getElementById('uName').textContent = u.name || u.email || '';
     if (u.picture) document.getElementById('uAvatar').src = u.picture;
-    if (!await controlerAcces(tok)) return;
+    /* Le contrôle d'accès et la liste des apporteurs ne dépendent pas l'un
+       de l'autre : les enchaîner ajoutait un aller-retour complet avant le
+       moindre affichage. On les lance ensemble.
+       L'échec de la liste ne doit pas masquer l'écran d'accès refusé, d'où
+       le .catch qui diffère l'erreur au lieu de la propager tout de suite. */
+    const [autorise, liste] = await Promise.all([
+      controlerAcces(tok),
+      bqQuery(tok, Q_APPORTEURS).catch(e => e)
+    ]);
+    if (!autorise) return;
+    if (liste instanceof Error) throw liste;
 
-    APPOS = (await bqQuery(tok, Q_APPORTEURS)).map(a => ({
+    APPOS = liste.map(a => ({
       code: a.code, libelle: a.libelle, entite: a.entite
     }));
     if (!APPOS.length) throw new Error('aucun apporteur actif dans V_Apporteurs');
