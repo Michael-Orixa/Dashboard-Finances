@@ -321,6 +321,44 @@ body{
   stroke-linejoin:round; opacity:0; align-self:center}
 .appo-o.on .appo-c{opacity:1}
 
+/* ---------- cartes repliables ---------- */
+/* L'en-tête est un bouton pleine largeur : la cible de clic est la ligne
+   entière, pas le seul chevron. */
+.pli{padding:0}
+.pli-h{display:flex; align-items:baseline; gap:12px; width:100%;
+  padding:16px 18px; border:0; background:transparent; color:inherit;
+  font:inherit; text-align:left; cursor:pointer; border-radius:12px;
+  transition:background .14s}
+.pli-h:hover{background:rgba(255,255,255,.022)}
+.pli-h:focus-visible{outline:2px solid rgba(99,102,241,.55); outline-offset:-2px}
+.pli-h .ctitle{margin:0; flex:none}
+/* la règle générale .ctitle + * ne doit pas écarter le résumé du titre */
+.pli-h .ctitle + *{margin-top:0}
+.pli-r{flex:1; color:var(--txt-3); font-size:11.5px;
+  font-variant-numeric:tabular-nums}
+.pli-v{width:14px; height:14px; flex:none; fill:none; stroke:var(--txt-3);
+  stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round;
+  transition:transform .18s, stroke .18s}
+.pli.on .pli-v{transform:rotate(180deg); stroke:var(--txt-2)}
+.pli.on .pli-h{border-radius:12px 12px 0 0}
+.pli-c{padding:0 18px 16px}
+.pli-c[hidden]{display:none}
+
+/* ---------- aperçu : bouton « afficher les autres lignes » ---------- */
+/* la règle générale .ctitle + * pousse l'élément suivant de 16 px :
+   sur le résumé, cela le faisait chevaucher le titre */
+.ctitle + .pli-r2{margin-top:3px}
+.pli-r2{display:block; margin:3px 0 15px; color:var(--txt-3); font-size:11.5px;
+  font-variant-numeric:tabular-nums}
+.ap-plus{display:block; width:100%; margin-top:10px; padding:8px;
+  border:1px dashed var(--line-2); border-radius:8px; background:transparent;
+  color:var(--txt-2); font:inherit; font-size:11.5px; cursor:pointer;
+  transition:border-color .14s, background .14s, color .14s}
+.ap-plus:hover{border-color:var(--txt-3); background:rgba(255,255,255,.022);
+  color:var(--txt)}
+.ap-plus.on{border-style:solid}
+.ap-plus:focus-visible{outline:2px solid rgba(99,102,241,.55); outline-offset:1px}
+
 /* ---------- base de facturation : clients × mois ---------- */
 /* 15 colonnes : on resserre la typographie et on fige la colonne client
    pour qu'elle reste lisible pendant le défilement horizontal. */
@@ -1053,6 +1091,68 @@ function piegeCouverture(x){
       juste à l'euro près dans les deux sens. Un total calculé sur les
       valeurs exactes afficherait un écart d'un ou deux euros avec la
       somme visible des cellules — inacceptable sur une pièce comptable. */
+/* Une carte repliable. Le résumé reste visible une fois refermée :
+   un bloc replié qui ne montre rien oblige à l'ouvrir pour savoir s'il
+   vaut la peine d'être ouvert. */
+function pliable(id, titre, resume, contenu, ouvert){
+  return '<section class="card full">'
+    + '<h2 class="ctitle">' + titre + '</h2>'
+    + '<span class="pli-r2">' + resume + '</span>'
+    + contenu
+    + '</section>';
+}
+
+/* Après rendu : on masque les lignes au-delà des cinq premières et on
+   pose un bouton. Agir sur le DOM plutôt que sur la chaîne HTML évite
+   de dupliquer la logique de construction de chaque tableau. */
+const SEUIL = 5;
+function poserApercus(){
+  document.querySelectorAll('#corps .card.full table').forEach(t => {
+    if (t.dataset.ap) return;
+    t.dataset.ap = '1';
+    const tous = [...t.querySelectorAll('tbody tr')];
+    const l = tous.filter(r => !r.classList.contains('somme'));
+    if (l.length <= SEUIL + 2) return;          /* deux lignes de plus : inutile */
+    const cache = l.slice(SEUIL);
+    /* La ligne de total disparaît avec les lignes qu'elle totalise : un
+       total qui ne s'accorde pas avec les lignes visibles fait douter de
+       tout le tableau, et le résumé sous le titre le porte déjà. */
+    const somme = tous.filter(r => r.classList.contains('somme'));
+    const voir = v => { cache.forEach(r => r.hidden = !v);
+                        somme.forEach(r => r.hidden = !v);
+                        b.textContent = v ? 'Replier'
+                          : 'Afficher les ' + cache.length + ' autres lignes';
+                        b.classList.toggle('on', v); };
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ap-plus';
+    t.closest('.card.full').appendChild(b);
+    let ouvert = false;
+    b.onclick = () => { ouvert = !ouvert; voir(ouvert); };
+    voir(false);
+  });
+}
+
+/* Un seul écouteur posé sur le corps : les cartes sont reconstruites à
+   chaque rendu, des écouteurs individuels seraient perdus à chaque fois. */
+const OUVERTS = {};
+function brancherReplis(){
+  const c = document.getElementById('corps');
+  if (!c || c.dataset.pli) return;
+  c.dataset.pli = '1';
+  c.addEventListener('click', e => {
+    const h = e.target.closest('.pli-h');
+    if (!h) return;
+    const s = h.closest('.pli'), d = s.querySelector('.pli-c');
+    const ouvre = d.hidden;
+    d.hidden = !ouvre;
+    s.classList.toggle('on', ouvre);
+    h.setAttribute('aria-expanded', String(ouvre));
+    /* l'état survit au changement d'exercice : refermer un tableau que
+       l'utilisateur vient d'ouvrir serait hostile */
+    OUVERTS[h.dataset.pli] = ouvre;
+  });
+}
+
 function vueFacturation(x){
   const an = D.A.filter(l => l.mois.slice(0, 4) === ANNEE);
   if (!an.length) return '';
@@ -1092,10 +1192,11 @@ function vueFacturation(x){
   const n = v => v === undefined || v === 0 ? '<span class="nil">·</span>'
                                             : nf.format(v);
 
-  return '<section class="card full">'
-    + '<h2 class="ctitle">Base de facturation mensuelle · ' + ANNEE
-    + ' — Commissions</h2>'
-    + '<div class="tab-wrap"><table class="tab fact"><thead><tr>'
+  return pliable('fact',
+    'Base de facturation mensuelle · ' + ANNEE + ' — Commissions',
+    cs.length + ' client' + (cs.length > 1 ? 's' : '') + ' · '
+      + nf.format(totDu + totPr) + ' €',
+    '<div class="tab-wrap"><table class="tab fact"><thead><tr>'
     + '<th class="fact-c">Client</th>'
     + mois.map(m => '<th class="fact-m' + (estPrevu(m) ? ' p' : '')
         + (connu(m) ? '' : ' v') + '">' + MOIS_COURT[Number(m.slice(5)) - 1]
@@ -1116,8 +1217,7 @@ function vueFacturation(x){
     + mois.map(m => '<td class="fact-m' + (estPrevu(m) ? ' p' : '')
         + (col[m] < 0 ? ' neg' : '') + '">' + n(col[m]) + '</td>').join('')
     + '<td class="fact-t">' + nf.format(totDu + totPr) + '</td>'
-    + '</tr></tbody></table></div>'
-    + '</section>';
+    + '</tr></tbody></table></div>', OUVERTS.fact);
 }
 
 function vueClients(x){
@@ -1128,9 +1228,10 @@ function vueClients(x){
   const dormants = (D && D.ACC ? D.ACC : []).filter(a => !actifs.has(a.id));
   const unP = x.apporteP !== 0;
 
-  return '<section class="card full">'
-    + '<h2 class="ctitle">Détail par accord</h2>'
-    + '<div class="tab-wrap"><table class="tab"><thead><tr>'
+  return pliable('det', 'Détail par accord',
+    cs.length + ' accord' + (cs.length > 1 ? 's' : '') + ' actif'
+      + (cs.length > 1 ? 's' : '') + ' · ' + eur(x.apporte),
+    '<div class="tab-wrap"><table class="tab"><thead><tr>'
     + '<th>Client</th><th class="opt">Apporté depuis</th>'
     + '<th>Réalisé</th>' + (unP ? '<th>Prévu</th>' : '')
     + '<th>Marge brute</th><th class="opt">Taux</th><th>Rétrocession</th>'
@@ -1162,9 +1263,7 @@ function vueClients(x){
     + (unP ? '<td>' + eur(x.apporteP) + '</td>' : '')
     + '<td>' + eur(x.apporte) + '</td><td class="opt"></td>'
     + '<td>' + eur(x.retro) + '</td><td class="opt2"></td></tr>'
-    + '</tbody></table></div>'
-
-    + '</section>';
+    + '</tbody></table></div>', OUVERTS.det);
 }
 
 /* ---- survol : le détail mensuel d'un client ---- */
@@ -1399,6 +1498,7 @@ function rendre(){
 
   selecteurApporteurs();
   selecteurAnnees();
+  poserApercus();
   tracerMois(x);
   document.querySelectorAll('.tab b.survol[data-cli]').forEach(b =>
     attacherPop(b, () => popClient(b.dataset.cli)));
