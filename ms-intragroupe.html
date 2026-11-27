@@ -1,0 +1,1394 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MS intragroupe</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Endettement du groupe Orixa : capital restant dû, échéancier de
+   décaissement et extinction de la dette, entité par entité.
+   Charte reprise à l'identique des pages Activité et Marge brute. */
+:root{
+  color-scheme: dark;
+  --bg:#0f1117;
+  --card:#1a1d27;
+  --card-2:#222636;
+  --line:rgba(255,255,255,.08);
+  --line-2:rgba(255,255,255,.14);
+  --txt:#e8eaf0;
+  --txt-2:#9aa0b4;
+  --txt-3:#6b7280;
+  --accent:#6366f1;
+  --good:#10b981;
+  --bad:#ef4444;
+  --warn:#eab308;
+  /* une teinte par entité juridique. Les deux bleus se distinguent par la
+     clarté autant que par la teinte ; la terre cuite d'Orixa tient le
+     contraste en niveaux de gris, pour les barres empilées. */
+  --e-or:#c66848; --e-om:#7fa6ff; --e-vp:#005fe6;
+  --entete:62px;
+  --f-ui: "DM Sans", ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font-family:var(--f-ui); font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased; display:flex; min-height:100vh;
+}
+
+/* ---------- barre latérale ---------- */
+.sidebar{width:238px; min-width:238px; background:var(--card); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; position:fixed; top:0; left:0; height:100vh; z-index:30}
+.sidebar-logo{height:var(--entete); flex:0 0 auto; display:flex; align-items:center;
+  padding:0 1.2rem; border-bottom:1px solid var(--line)}
+.sidebar-nav{display:flex; flex-direction:column; gap:4px; padding:1rem .8rem; flex:1}
+.nav-btn{padding:10px 13px; border-radius:8px; border:1px solid transparent; background:transparent;
+  color:var(--txt-3); font-size:13px; font-family:inherit; cursor:pointer; font-weight:500;
+  text-align:left; width:100%; display:flex; align-items:center; gap:10px;
+  text-decoration:none; transition:all .15s}
+.nav-btn svg{width:16px; height:16px; flex:0 0 auto; fill:none; stroke:currentColor;
+  stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; opacity:.85}
+.nav-btn.active svg{opacity:1}
+.nav-btn:hover{color:var(--txt); background:var(--card-2)}
+.nav-btn.active{border-color:rgba(99,102,241,.3); color:#fff; background:rgba(99,102,241,.15)}
+.spacer{flex:1}
+.nav-groupe{display:flex; flex-direction:column; gap:4px}
+.nav-parent{color:var(--txt-2)}
+.nav-parent .chev{margin-left:auto; width:13px; height:13px; opacity:.7; transition:transform .15s}
+.nav-parent[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+.sous-menu{display:flex; flex-direction:column; gap:2px;
+  margin-left:13px; padding-left:11px; border-left:1px solid var(--line-2)}
+.nav-btn.sous{font-size:12.5px; padding:8px 11px}
+/* sans cette règle, le display:flex ci-dessus l'emporte sur le display:none
+   que le navigateur applique à [hidden], et le sous-menu reste ouvert. */
+.sous-menu[hidden]{display:none}
+.sidebar-footer{padding:1rem .8rem; border-top:1px solid var(--line)}
+.user-info{display:flex; align-items:center; gap:8px; margin-bottom:8px}
+.user-avatar{width:26px; height:26px; border-radius:50%; background:var(--card-2);
+  border:1px solid var(--line); flex-shrink:0}
+.user-name{font-size:11px; color:var(--txt-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.btn-logout{padding:5px 10px; border-radius:6px; border:1px solid var(--line); background:transparent;
+  color:var(--txt-3); font-size:11px; cursor:pointer; font-family:inherit; width:100%; text-align:center}
+.btn-logout:hover{border-color:var(--bad); color:var(--bad)}
+
+.main{margin-left:238px; flex:1; min-width:0}
+.top{position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+  background:rgba(15,17,23,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+.top-in{min-height:calc(var(--entete) - 1px); display:flex; align-items:center; gap:14px;
+  padding-block:9px;
+  padding-left:max(2rem, env(safe-area-inset-left,0px));
+  padding-right:max(2rem, env(safe-area-inset-right,0px))}
+.top-t{font-size:15px; font-weight:600}
+.top-s{font-size:12px; color:var(--txt-3)}
+.wrap{padding-block:0 48px;
+  padding-left:max(2rem, env(safe-area-inset-left,0px));
+  padding-right:max(2rem, env(safe-area-inset-right,0px))}
+
+/* ---------- bandeau de périmètre ---------- */
+.perim{display:flex; align-items:flex-start; gap:9px; background:rgba(99,102,241,.07);
+  border:1px solid rgba(99,102,241,.22); border-radius:9px; padding:11px 14px;
+  font-size:12px; color:var(--txt-2); line-height:1.5}
+.perim svg{width:15px; height:15px; flex:0 0 auto; margin-top:1px; fill:none;
+  stroke:var(--accent); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+.perim b{color:var(--txt); font-weight:600}
+
+/* ---------- rythme vertical ----------
+   Repris des pages Activité et Marge brute : 22 px sous la barre de
+   titre, 12 px entre deux blocs, 14 px pour une note à l'intérieur d'une
+   carte. La règle porte sur tous les enfants de #corps, de sorte qu'un
+   bloc ajouté plus tard hérite du bon écart sans qu'on y pense. */
+.perim{margin-top:22px}
+#corps > *{margin-top:12px}
+
+/* ---------- kpi ----------
+   Cinq cartes au lieu de quatre, l'actualisation en dernier : plutôt que
+   de figer le nombre de colonnes, on fixe une largeur plancher et on
+   laisse la grille retomber d'elle-même. Un indicateur ajouté plus tard
+   ne cassera pas la rangée. */
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(198px,1fr)); gap:12px}
+.kpi{background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:15px 16px; position:relative; overflow:hidden}
+.kpi::before{content:""; position:absolute; inset:0 0 auto 0; height:2px; background:var(--accent)}
+.kpi.k2::before{background:#f59e0b}
+.kpi.k3::before{background:var(--bad)}
+.kpi.k4::before{background:var(--e-om)}
+.kpi.k5::before{background:var(--good)}
+
+/* ---------- fraîcheur de la donnée ----------
+   Repris de la page Activité : même pastille, même pulsation. */
+.maj{display:flex; align-items:center; gap:8px; margin-top:7px}
+.maj .maj-v{font-size:18px; font-weight:600}
+.maj-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;
+  position:relative; display:inline-block}
+.maj-dot::after{content:""; position:absolute; inset:0; border-radius:50%;
+  animation:puls 2.4s ease-out infinite}
+.maj-dot.v, .maj-dot.v::after{background:var(--good)}
+.maj-dot.o, .maj-dot.o::after{background:#f59e0b}
+.maj-dot.r, .maj-dot.r::after{background:var(--bad)}
+@keyframes puls{0%{transform:scale(1); opacity:.7} 70%{transform:scale(2.6); opacity:0}
+  100%{opacity:0}}
+.maj-s{line-height:1.45}
+.maj-s b{font-weight:500; color:var(--txt-2)}
+.kpi-l{font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--txt-3)}
+.kpi-v{font-size:27px; font-weight:600; margin-top:7px; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+.kpi-s{font-size:12px; color:var(--txt-2); margin-top:3px}
+.kpi-rows{display:flex; flex-direction:column; gap:3px; margin-top:9px}
+.kpi-r{display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:11.5px}
+.kpi-r span{color:var(--txt-3); white-space:nowrap; display:flex; align-items:center; gap:6px}
+.kpi-r span i{width:7px; height:7px; border-radius:2px; flex:none; font-style:normal}
+.kpi-r b{font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap}
+.kpi-r b.nil{color:var(--txt-3); opacity:.55; font-weight:400}
+
+/* ---------- cartes ---------- */
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:17px 18px 19px; min-width:0}
+.card.full{grid-column:1/-1}
+.ctitle{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--txt-2); margin:0 0 2px}
+/* sans sous-titre, le titre collait aux entêtes de colonnes : on rétablit
+   l'espacement que le sous-titre assurait, sans le doubler quand il existe */
+.ctitle + *{margin-top:16px}
+.csub{font-size:11.5px; color:var(--txt-3); margin:0 0 16px}
+.ctitle + .csub{margin-top:4px}
+.chart-box{position:relative; height:260px}
+.chart-box.haut{height:310px}
+.note{font-size:11.5px; color:var(--txt-3); margin-top:14px; font-style:italic}
+.legend{display:flex; flex-wrap:wrap; gap:7px 14px; margin-top:14px}
+.leg{display:flex; align-items:center; gap:5px; font-size:11px; color:var(--txt-2); white-space:nowrap}
+.leg i{width:9px; height:9px; border-radius:2px}
+.leg i.tr{width:13px; height:0; border-radius:0; border-top:2px dashed rgba(239,68,68,.85)}
+
+/* ---------- panneaux par entité ---------- */
+.entites{display:grid; grid-template-columns:repeat(3,1fr); gap:13px}
+.ent{background:var(--card-2); border:1px solid var(--line); border-radius:9px;
+  padding:14px 15px 15px; min-width:0}
+.ent.e-or{border-color:rgba(198,104,72,.34)}
+.ent.e-om{border-color:rgba(127,166,255,.30)}
+.ent.e-vp{border-color:rgba(0,95,230,.42)}
+.ent-n{font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--txt-2);
+  display:flex; align-items:center; gap:7px}
+.ent-n i{width:8px; height:8px; border-radius:2px; flex:none}
+.ent-t{font-size:22px; font-weight:600; font-variant-numeric:tabular-nums;
+  letter-spacing:-.01em; margin-top:2px}
+.ent-sum{display:flex; flex-wrap:wrap; gap:4px 14px; margin:5px 0 14px;
+  font-size:11.5px; color:var(--txt-3)}
+.ent-rows{display:flex; flex-direction:column; gap:2px}
+.erow{position:relative; display:grid; grid-template-columns:1fr auto; align-items:center;
+  gap:9px; padding:5px 8px; border-radius:4px; overflow:hidden}
+.erow b{position:absolute; left:0; top:0; bottom:0; background:rgba(255,255,255,.05); border-radius:4px}
+.ent.e-or .erow b{background:rgba(198,104,72,.16)}
+.ent.e-om .erow b{background:rgba(127,166,255,.14)}
+.ent.e-vp .erow b{background:rgba(0,95,230,.24)}
+.erow em, .erow span{position:relative}
+.erow em{font-style:normal; font-size:12.5px; color:var(--txt-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.erow em u{text-decoration:none; color:var(--txt-3); font-size:10.5px; margin-left:6px}
+.erow span{font-size:12.5px; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+.erow.ehead{padding-bottom:3px; margin-bottom:2px; border-bottom:1px solid var(--line)}
+.erow.ehead em, .erow.ehead span{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--txt-3); font-weight:500}
+.ent-vide{font-size:12px; color:var(--txt-3); font-style:italic; padding:4px 0}
+
+/* ---------- tableaux ----------
+   Le conteneur défilant est un garde-fou : même si un libellé de concours
+   venait à s'allonger, c'est le tableau qui glisse, jamais la page. */
+.tab-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
+.tab{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+.tab th{font-size:9.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--txt-3);
+  font-weight:500; text-align:right; padding:0 0 9px 12px; white-space:nowrap}
+.tab th:first-child{text-align:left; padding-left:0}
+.tab td{padding:8px 0 8px 12px; text-align:right; font-size:12.5px; border-top:1px solid var(--line)}
+.tab td:first-child{text-align:left; padding-left:0; color:var(--txt-2)}
+.tab tr.encours td{color:var(--txt); font-weight:500}
+.tab tr.encours td:first-child{color:var(--txt)}
+.tab tr.somme td{border-top:1px solid var(--line-2); font-weight:600; color:var(--txt)}
+.tab td.nil{color:var(--txt-3); opacity:.5}
+.tab .pt{display:inline-flex; align-items:center; gap:7px}
+.tab .pt i{width:7px; height:7px; border-radius:2px; flex:none}
+.tab .bulle{display:inline-block; font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+  padding:2px 7px; border-radius:4px; border:1px solid rgba(234,179,8,.34);
+  background:rgba(234,179,8,.1); color:#facc15}
+.tab .mini{display:block; font-size:10.5px; color:var(--txt-3); margin-top:2px}
+.tab b.survol{font-weight:inherit; cursor:help; border-bottom:1px dotted var(--line-2)}
+.jauge{display:inline-flex; align-items:center; gap:8px; justify-content:flex-end; width:100%}
+
+/* ---------- panneau de survol ----------
+   Repris à l'identique de la page Marge brute : même boîte, mêmes lignes,
+   même placement. Un seul élément pour toute la page, rempli à la volée. */
+.pop{position:fixed; z-index:50; background:var(--card-2); border:1px solid var(--line-2);
+  border-radius:8px; padding:11px 13px; box-shadow:0 12px 34px rgba(0,0,0,.5);
+  max-width:360px; pointer-events:none}
+.pop h4{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--txt-3);
+  margin:0 0 7px; font-weight:500}
+.pop-row{display:flex; justify-content:space-between; gap:14px; font-size:12px; padding:1.5px 0}
+.pop-row em{font-style:normal; color:var(--txt-2); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:7px}
+.pop-row em i{width:7px; height:7px; border-radius:2px; flex:none}
+.pop-row span{font-variant-numeric:tabular-nums; color:var(--txt); white-space:nowrap}
+.pop-tot{display:flex; justify-content:space-between; gap:14px; font-size:12px;
+  padding:6px 0 0; margin-top:5px; border-top:1px solid var(--line);
+  color:var(--txt); font-weight:600}
+.pop-tot span{font-variant-numeric:tabular-nums}
+.pop-plus{font-size:11px; color:var(--txt-3); font-style:italic; margin-top:6px}
+.jauge-b{width:60px; height:5px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; flex:none}
+.jauge-b i{display:block; height:100%; border-radius:2px; background:var(--accent)}
+
+/* ---------- chargement et pannes ---------- */
+.attente{padding:26px 18px; color:var(--txt-3); font-size:13px; text-align:center}
+.panne{background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:16px 18px; margin-top:22px; color:var(--txt-2); font-size:12.5px; line-height:1.5}
+.panne b{display:block; color:var(--bad); font-size:13px; margin-bottom:5px}
+.panne code{display:block; margin-top:9px; font-family:ui-monospace,Menlo,monospace;
+  font-size:11px; color:var(--txt-3); white-space:pre-wrap; word-break:break-word}
+.alerte{display:flex; align-items:flex-start; gap:8px; background:rgba(245,158,11,.1);
+  border:1px solid rgba(245,158,11,.3); color:#fbbf24; border-radius:7px;
+  padding:9px 12px; font-size:11.5px; line-height:1.5; margin-top:12px}
+.alerte svg{width:14px; height:14px; flex:0 0 auto; margin-top:2px; fill:none;
+  stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
+
+@media (max-width:1320px){ .grid{grid-template-columns:1fr} }
+@media (max-width:1100px){ .entites{grid-template-columns:1fr} }
+@media (max-width:900px){
+  body{display:block}
+  .nav-groupe, .sous-menu{display:contents}
+  .chev, .spacer{display:none}
+  .sous-menu{margin-left:0; padding-left:0; border-left:0}
+  .sidebar{position:static; width:auto; min-width:0; height:auto; flex-direction:row;
+    align-items:center; gap:10px; border-right:0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .sidebar-logo{border-bottom:0; height:auto; padding:.6rem 1rem}
+  .sidebar-nav{flex-direction:row; flex-wrap:wrap; padding:.5rem .8rem; gap:6px; flex:1 1 auto}
+  .nav-btn{width:auto; padding:7px 11px; font-size:12.5px; gap:7px}
+  .sidebar-footer{display:none}
+  .main{margin-left:0}
+  .kpis{grid-template-columns:1fr 1fr}
+}
+@media (max-width:640px){
+  .kpis{grid-template-columns:1fr}
+  /* sur un téléphone on garde ce qui décide : le concours, ce qu'il reste
+     à rembourser et la prochaine échéance. Le reste se lit sur grand
+     écran, ou en faisant glisser le tableau. */
+  .tab th.opt, .tab td.opt, .tab th.opt2, .tab td.opt2{display:none}
+  .tab th, .tab td{padding-left:8px; font-size:12px}
+  /* les intitulés passent sur deux lignes plutôt que de pousser le
+     tableau hors de sa carte */
+  .tab th{white-space:normal}
+  .tab .mini{font-size:10px}
+  .pop{max-width:calc(100vw - 20px)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- sélecteur d'exercice, dans la barre de titre ---------- */
+.ans{display:flex; gap:4px; margin-left:2px}
+.ans .an{padding:5px 11px; border-radius:7px; border:1px solid var(--line);
+  background:transparent; color:var(--txt-3); font:inherit; font-size:12px;
+  cursor:pointer; font-variant-numeric:tabular-nums; transition:all .15s}
+.ans .an:hover{color:var(--txt); border-color:var(--line-2)}
+.ans .an.on{background:rgba(99,102,241,.16); border-color:rgba(99,102,241,.4); color:#fff}
+.jauge{justify-content:flex-end; white-space:nowrap}
+
+/* ---------- deux entités de plus que sur la page Dettes ----------
+   Feedcast reçoit des refacturations sans jamais porter de contrat ;
+   la grille à trois colonnes doit pouvoir en accueillir davantage. */
+/* auto-fill et non auto-fit : sur un exercice où une seule entité est
+   bénéficiaire, auto-fit étirerait son panneau sur toute la largeur et
+   lui donnerait l'air d'un bloc à part. */
+.entites{grid-template-columns:repeat(auto-fill,minmax(252px,1fr))}
+.ent.e-fc{border-color:rgba(45,212,167,.32)}
+.ent.e-fc .erow b{background:rgba(45,212,167,.15)}
+.ent.e-xx{border-color:var(--line)}
+
+/* ---------- aperçu : bouton « afficher les autres lignes » ---------- */
+/* la règle générale .ctitle + * pousse l'élément suivant de 16 px :
+   sur le résumé, cela le faisait chevaucher le titre */
+.ctitle + .pli-r2{margin-top:3px}
+.pli-r2{display:block; margin:3px 0 15px; color:var(--txt-3); font-size:11.5px;
+  font-variant-numeric:tabular-nums}
+.ap-plus{display:block; width:100%; margin-top:10px; padding:8px;
+  border:1px dashed var(--line-2); border-radius:8px; background:transparent;
+  color:var(--txt-2); font:inherit; font-size:11.5px; cursor:pointer;
+  transition:border-color .14s, background .14s, color .14s}
+.ap-plus:hover{border-color:var(--txt-3); background:rgba(255,255,255,.022);
+  color:var(--txt)}
+.ap-plus.on{border-style:solid}
+.ap-plus:focus-visible{outline:2px solid rgba(99,102,241,.55); outline-offset:1px}
+
+/* ---------- part gardée par la société de contrat ----------
+   Elle appartient au tableau — sans elle les quotes-parts ne font pas
+   100 % — mais elle ne se facture pas : elle s'efface. */
+.tab td.garde{color:var(--txt-3)}
+
+/* ---------- base de refacturation : flux × mois ---------- */
+/* 14 colonnes : on resserre la typographie et on fige la colonne de
+   gauche pour qu'elle reste lisible pendant le défilement horizontal. */
+.fact{font-size:10.5px; min-width:900px}
+.fact th, .fact td{padding:4px 6px}
+.fact thead th{font-size:9.5px}
+.fact .fact-c{font-size:11px}
+.fact-c{text-align:left; white-space:nowrap; position:sticky; left:0;
+  background:var(--card); z-index:1; padding-right:14px!important}
+.fact thead .fact-c{z-index:2}
+.fact-m{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.fact-t{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums;
+  font-weight:600; padding-left:14px!important}
+.fact th.fact-t{font-weight:500}
+.fact tbody td.fact-m{color:var(--txt-2)}
+.fact th.v{opacity:.45}
+.fact td.neg{color:var(--warn)!important}
+.fact .nil{color:var(--txt-3); opacity:.3}
+.fact tbody td.fact-t{color:var(--txt)}
+.fact tr.somme td{border-top:1px solid var(--line-2); font-weight:600}
+.fact tr.somme .fact-c{font-weight:600}
+.fact .mini{display:block; font-size:9.5px; color:var(--txt-3); margin-top:1px}
+
+@media (max-width:640px){ .ans{flex-wrap:wrap} }
+</style>
+<script src="acces.js"></script>
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <img src="logo.png" alt="Orixa Groupe" style="height:32px;width:auto;opacity:.95">
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-btn" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      Activité
+    </a>
+    <a class="nav-btn" href="marge-brute.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      Marge brute
+    </a>
+    <a class="nav-btn" href="historique.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+      Historique P&amp;L
+    </a>
+    <a class="nav-btn" href="dettes.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8h20z"/><path d="M5 21V10M9 21V10M15 21V10M19 21V10"/><path d="M3 21h18"/></svg>
+      Dettes
+    </a>
+
+    <div class="nav-groupe">
+      <button class="nav-btn nav-parent" type="button" aria-expanded="true" aria-controls="sous-suivi">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Suivi
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="sous-menu" id="sous-suivi">
+        <a class="nav-btn sous" href="apports.html">Apports d’affaire</a>
+        <a class="nav-btn sous active" href="ms-intragroupe.html">MS intragroupe</a>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="nav-groupe" id="grpParam" style="display:none">
+      <button class="nav-btn nav-parent" type="button" id="btnParam"
+              aria-expanded="false" aria-controls="sousParam">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Paramètres
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="sous-menu" id="sousParam" hidden>
+        <a class="nav-btn sous" href="parametres.html">Mise à jour des tables</a>
+        <a class="nav-btn sous" href="panneau-controle.html">Panneau de contrôle</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <img id="uAvatar" class="user-avatar" alt="">
+      <span id="uName" class="user-name"></span>
+    </div>
+    <button class="btn-logout" type="button" onclick="logout()">Déconnexion</button>
+  </div>
+</div>
+
+<div class="main">
+  <header class="top">
+    <div class="top-in">
+      <span class="top-t">MS intragroupe</span>
+      <span class="ans" id="ans"></span>
+      <span class="top-s" id="topS">chargement…</span>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+    <div id="corps"><div class="attente">Lecture de la masse salariale…</div></div>
+
+    <!-- une seule infobulle pour toute la page, hors du flux -->
+    <div class="pop" id="pop" hidden></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   MS intragroupe : le coût salarial supporté par une entité au profit
+   d'une autre. Un salarié a UN contrat — son entité de contrat — et son
+   coût peut être réparti sur plusieurs entités de charge. Dès que les
+   deux diffèrent, il y a refacturation à émettre.
+
+   Trois natures de coût, trois règles d'imputation, qui ne se déduisent
+   pas l'une de l'autre :
+     · le fixe  suit MS_repartition_all, au prorata de la quote-part ;
+     · la prime suit sa PROPRE colonne entite_charge, saisie au cas par
+       cas — une prime n'est pas forcément répartie comme le salaire ;
+     · le STC   reste entier sur l'entité de contrat, jamais refacturé.
+
+   Le périmètre n'est pas « tous les salariés » mais ceux dont au moins
+   une ligne sort de leur entité de contrat. Les autres n'ont rien à
+   faire ici : leur coût ne traverse aucune frontière.
+
+   Toute la série est lue en une fois et agrégée dans le navigateur :
+   quelques centaines de lignes, et changer d'exercice ne coûte alors
+   aucun aller-retour en base.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const P = 'db-finances-496809';
+
+/* ---- jeton Google, partagé avec les autres pages du dashboard ---- */
+const TOKEN_TTL = 3500 * 1000;
+function loadToken(){
+  let tok, ts;
+  try { tok = localStorage.getItem('bq_token');
+        ts = parseInt(localStorage.getItem('bq_token_ts') || '0'); } catch(e) {}
+  return (tok && (Date.now() - ts) < TOKEN_TTL) ? tok : null;
+}
+function clearToken(){
+  try { localStorage.removeItem('bq_token'); localStorage.removeItem('bq_token_ts'); } catch(e) {}
+}
+function logout(){ clearToken(); window.location.href = 'index.html'; }
+
+async function bqQuery(token, sql){
+  const r = await fetch('https://bigquery.googleapis.com/bigquery/v2/projects/'
+      + P + '/queries', {
+    method:'POST',
+    headers:{Authorization:'Bearer ' + token, 'Content-Type':'application/json'},
+    body: JSON.stringify({query: sql, useLegacySql:false, timeoutMs:60000, maxResults:20000})
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('BQ ' + r.status + ' sur ' + table(sql) + ' — '
+    + ((d.error && d.error.message) || r.statusText || 'réponse sans motif'));
+  if (d.error) throw new Error(table(sql) + ' — ' + d.error.message);
+  if (d.jobComplete === false) throw new Error('Requête non terminée dans le délai imparti.');
+  if (!d.rows) return [];
+  const champs = d.schema.fields.map(f => f.name);
+  return d.rows.map(l => { const o = {}; l.f.forEach((c,i) => o[champs[i]] = c.v); return o; });
+}
+function table(sql){
+  const m = String(sql || '').match(/FROM `[^.]+\.([^`]+)`/);
+  return m ? m[1] : 'requête inconnue';
+}
+
+/* On lit les tables matérialisées, jamais les vues sur classeur : une vue
+   sur Drive obligerait chaque lecteur de la page à avoir accès au fichier,
+   et une absence d'accès ne se verrait pas — elle le déconnecterait. */
+const MS = n => '`' + P + '.Masse_salariale.' + n + '`';
+
+/* ───────────────────────── la requête ─────────────────────────
+   Un salarié peut changer d'entité en cours de route : l'entité de
+   contrat est donc un attribut du couple salarié-mois, jamais du seul
+   salarié. Joindre les primes sur le seul id_salarie dupliquerait
+   chaque prime autant de fois que l'intéressé a eu de contrats.
+
+   Quand aucune période ne couvre le mois d'une dépense — une prime
+   versée dans l'intervalle entre deux contrats, une date manquante —
+   on retient le contrat le plus proche dans le temps, en privilégiant
+   celui qui PRÉCÈDE. Prendre simplement le contrat le plus récent
+   rattacherait une prime de décembre au contrat signé en janvier
+   suivant, et la ferait apparaître comme refacturée alors qu'elle ne
+   l'est pas. La ligne est marquée, et le chiffre de ces reprises est
+   affiché en pied de page. */
+/* Le socle commun aux deux requêtes de la page. Le dire une seule fois
+   n'est pas une coquetterie : deux copies d'une règle d'imputation
+   divergent au premier correctif, et les deux lectures de la page
+   cesseraient alors de s'accorder sans que rien ne le signale. */
+const BASE = `
+sal AS (
+  SELECT id_salarie, nom_prenom_salarie,
+         TRIM(entite_contrat) AS entite_contrat, date_embauche, date_sortie
+  FROM ${MS('MS_salarie_all_mat')}
+  WHERE id_salarie IS NOT NULL
+),
+nom AS (
+  SELECT id_salarie, MIN(nom_prenom_salarie) AS salarie FROM sal GROUP BY 1
+),
+rep AS (
+  SELECT id_salarie, TRIM(entite_contrat) AS entite_contrat,
+         TRIM(entite_charge) AS entite_charge, TRIM(pole) AS pole,
+         quote_part, mois_debut, mois_fin
+  FROM ${MS('MS_repartition_all_mat')}
+  WHERE id_salarie IS NOT NULL
+),
+mois_u AS (
+  SELECT DISTINCT mois FROM ${MS('MS_realisee_fixe_mat')}   WHERE mois IS NOT NULL
+  UNION DISTINCT
+  SELECT DISTINCT mois FROM ${MS('MS_realisee_primes_mat')} WHERE mois IS NOT NULL
+  UNION DISTINCT
+  SELECT DISTINCT mois FROM ${MS('MS_realisee_stc_mat')}    WHERE mois IS NOT NULL
+),
+contrat AS (
+  SELECT id_salarie, mois, entite_contrat FROM (
+    SELECT s.id_salarie, m.mois, s.entite_contrat,
+           ROW_NUMBER() OVER (PARTITION BY s.id_salarie, m.mois
+                              ORDER BY s.date_embauche DESC) AS r
+    FROM mois_u m
+    JOIN sal s ON m.mois >= DATE_TRUNC(s.date_embauche, MONTH)
+              AND (s.date_sortie IS NULL
+                   OR m.mois <= DATE_TRUNC(s.date_sortie, MONTH))
+  ) WHERE r = 1
+),
+repli AS (
+  SELECT id_salarie, mois, entite_contrat FROM (
+    SELECT s.id_salarie, m.mois, s.entite_contrat,
+           ROW_NUMBER() OVER (
+             PARTITION BY s.id_salarie, m.mois
+             ORDER BY IF(DATE_TRUNC(s.date_embauche, MONTH) <= m.mois, 0, 1),
+                      ABS(DATE_DIFF(DATE_TRUNC(s.date_embauche, MONTH),
+                                    m.mois, MONTH))) AS r
+    FROM mois_u m
+    JOIN sal s ON TRUE
+  ) WHERE r = 1
+),
+f AS (
+  SELECT x.mois, x.id_salarie, r.entite_contrat, r.entite_charge, r.pole,
+         'fixe' AS nature, r.quote_part,
+         x.cout_salaire * r.quote_part AS montant, FALSE AS replie
+  FROM ${MS('MS_realisee_fixe_mat')} x
+  JOIN rep r ON r.id_salarie = x.id_salarie
+            AND x.mois >= r.mois_debut
+            AND (r.mois_fin IS NULL OR x.mois <= r.mois_fin)
+  WHERE x.mois IS NOT NULL
+),
+p AS (
+  SELECT x.mois, x.id_salarie,
+         COALESCE(c.entite_contrat, rp.entite_contrat) AS entite_contrat,
+         TRIM(x.entite_charge) AS entite_charge,
+         CAST(NULL AS STRING) AS pole,
+         'prime' AS nature, CAST(NULL AS FLOAT64) AS quote_part,
+         x.cout_prime AS montant, c.entite_contrat IS NULL AS replie
+  FROM ${MS('MS_realisee_primes_mat')} x
+  LEFT JOIN contrat c ON c.id_salarie = x.id_salarie AND c.mois = x.mois
+  LEFT JOIN repli  rp ON rp.id_salarie = x.id_salarie AND rp.mois = x.mois
+  WHERE x.mois IS NOT NULL
+),
+t AS (
+  SELECT x.mois, x.id_salarie,
+         COALESCE(c.entite_contrat, rp.entite_contrat) AS entite_contrat,
+         COALESCE(c.entite_contrat, rp.entite_contrat) AS entite_charge,
+         CAST(NULL AS STRING) AS pole,
+         'stc' AS nature, CAST(NULL AS FLOAT64) AS quote_part,
+         x.cout_stc AS montant, c.entite_contrat IS NULL AS replie
+  FROM ${MS('MS_realisee_stc_mat')} x
+  LEFT JOIN contrat c ON c.id_salarie = x.id_salarie AND c.mois = x.mois
+  LEFT JOIN repli  rp ON rp.id_salarie = x.id_salarie AND rp.mois = x.mois
+  WHERE x.mois IS NOT NULL
+),
+tout AS (SELECT * FROM f UNION ALL SELECT * FROM p UNION ALL SELECT * FROM t),
+-- Toutes les entités de charge ne sont pas des sociétés. Feedcast est un
+-- PRODUIT d'Orixa Media : une ligne Orixa Media → Feedcast reste chez
+-- Orixa Media et ne donne lieu à aucune facture. Elle doit rester visible
+-- dans le détail — c'est une imputation analytique réelle — mais ne
+-- compter ni dans le refacturé, ni dans le périmètre.
+-- Une ligne par produit à rattacher à sa société. Le jour où il y en aura
+-- plusieurs, cette liste a vocation à devenir une table de référence.
+soc AS (
+  SELECT 'feedcast' AS cle, 'Orixa Media' AS societe
+),
+porte AS (
+  SELECT o.*,
+         IFNULL(sk.societe, o.entite_contrat) AS societe_contrat,
+         IFNULL(sc.societe, o.entite_charge)  AS societe_charge
+  FROM tout o
+  LEFT JOIN soc sk ON sk.cle = LOWER(TRIM(o.entite_contrat))
+  LEFT JOIN soc sc ON sc.cle = LOWER(TRIM(o.entite_charge))
+)`;
+
+/* Le détail, restreint aux salariés dont au moins une ligne sort de leur
+   société : les autres n'ont rien à faire sur une page intragroupe. */
+const Q_DETAIL = `
+WITH ${BASE},
+concernes AS (
+  SELECT DISTINCT id_salarie FROM porte WHERE societe_charge <> societe_contrat
+)
+SELECT FORMAT_DATE('%Y-%m', o.mois)      AS mois,
+       o.id_salarie,
+       n.salarie,
+       o.entite_contrat,
+       o.entite_charge,
+       o.societe_contrat,
+       o.societe_charge,
+       IFNULL(o.pole, '')                AS pole,
+       o.nature,
+       ROUND(IFNULL(o.quote_part, 0), 4) AS quote_part,
+       o.societe_charge <> o.societe_contrat AS refacture,
+       LOGICAL_OR(o.replie)              AS repli,
+       ROUND(SUM(o.montant), 2)          AS montant
+FROM porte o
+JOIN concernes c USING (id_salarie)
+JOIN nom       n USING (id_salarie)
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+ORDER BY 1, 3`;
+
+/* ───────────────── la masse salariale, toutes sociétés ─────────────────
+   La requête précédente ne voit que les salariés dont une ligne sort de
+   leur société. Un salarié dont le coût reste intégralement chez lui n'y
+   figure pas — et « ce que la holding garde » ne s'en déduit donc pas :
+   on ne verrait que le reliquat des treize.
+
+   Celle-ci balaie TOUS les salariés mais ne ramène que des agrégats :
+   un mois, une société de contrat, une société de charge, une nature.
+   Quelques centaines de lignes, aucun salaire individuel. C'est elle qui
+   donne le dénominateur et le coût net supporté par chacune. */
+const Q_SOCIETES = `
+WITH ${BASE}
+SELECT FORMAT_DATE('%Y-%m', mois)  AS mois,
+       societe_contrat,
+       societe_charge,
+       nature,
+       COUNT(DISTINCT id_salarie)  AS salaries,
+       ROUND(SUM(montant), 2)      AS montant
+FROM porte
+WHERE montant IS NOT NULL
+GROUP BY 1, 2, 3, 4
+ORDER BY 1, 2, 3`;
+
+/* Fraîcheur : la plus ancienne des tables matérialisées dont la page
+   dépend, et la date des classeurs, dont l'adresse n'est jamais écrite
+   ici — elle est lue dans le catalogue. */
+const Q_FRAICHEUR = `
+SELECT 'table' AS genre, CAST(last_modified_time AS STRING) AS valeur
+FROM \`${P}.Masse_salariale.__TABLES__\`
+WHERE table_id IN ('MS_salarie_all_mat', 'MS_repartition_all_mat',
+                   'MS_realisee_fixe_mat', 'MS_realisee_primes_mat',
+                   'MS_realisee_stc_mat')
+UNION ALL
+SELECT 'classeur', REGEXP_EXTRACT(option_value, r'/d/([A-Za-z0-9_-]+)')
+FROM \`${P}.Masse_salariale\`.INFORMATION_SCHEMA.TABLE_OPTIONS
+WHERE option_name = 'uris'
+  AND table_name IN ('MS_repartition_all', 'MS_realisee_fixe',
+                     'MS_realisee_primes')`;
+
+/* ═══════════════════════════ OUTILLAGE ═══════════════════════════ */
+
+const echappe = s => String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const nf = new Intl.NumberFormat('fr-FR');
+const MOIS_COURT = ['jan','fév','mar','avr','mai','jun',
+                    'jul','aoû','sep','oct','nov','déc'];
+const kgros = v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(1).replace('.',',') + ' M€'
+                                      : nf.format(Math.round(v/1000)) + ' K€';
+const keur  = v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2).replace('.',',') + ' M€'
+                                      : nf.format(Math.round(v/1000)) + ' K€';
+const eur   = v => nf.format(Math.round(v)) + ' €';
+/* En dessous de dix mille euros, les milliers effacent le chiffre :
+   393 € s'afficherait « 0 K€ ». Les grands nombres gagnent à être
+   abrégés, les petits à être dits. */
+const gros  = v => Math.abs(v) < 10000 ? eur(v) : kgros(v);
+const court = v => Math.abs(v) < 10000 ? eur(v) : keur(v);
+const pct   = (v, b) => b ? (v / b * 100).toFixed(1).replace('.', ',') + ' %' : '—';
+
+const MOIS_C = ['janv.','févr.','mars','avr.','mai','juin',
+                'juil.','août','sept.','oct.','nov.','déc.'];
+const libMois     = m => MOIS_C[Number(m.slice(5)) - 1] + ' ' + m.slice(2, 4);
+const libMoisLong = m => MOIS_C[Number(m.slice(5)) - 1] + ' ' + m.slice(0, 4);
+
+/* Une teinte par entité, reprise de la page Dettes : la même société
+   garde la même couleur d'une page à l'autre. */
+const TEINTE = {
+  'orixa':       {cl:'e-or', c:'#c66848'},
+  'orixa media': {cl:'e-om', c:'#7fa6ff'},
+  'visiperf':    {cl:'e-vp', c:'#005fe6'},
+  'feedcast':    {cl:'e-fc', c:'#2dd4a7'}
+};
+const teinte = e => TEINTE[String(e || '').trim().toLowerCase()]
+                 || {cl:'e-xx', c:'#8b90a4'};
+
+const NATURES = {fixe:'fixe', prime:'primes', stc:'soldes de tout compte'};
+
+let D = null, S = null, ANNEE = null, TOK = null;
+
+/* ═══════════════════════════ CALCULS ═══════════════════════════ */
+
+const vrai = v => v === true || v === 'true';
+
+function agreger(lignes){
+  /* Deux niveaux de lecture, et il faut les tenir séparés : l'entité de
+     charge est l'imputation analytique — elle peut désigner un produit —
+     tandis que la société est la personne morale, seule à pouvoir émettre
+     ou recevoir une facture. Les flux et le refacturé se raisonnent en
+     sociétés ; le détail par salarié affiche l'imputation réelle. */
+  const L = lignes.map(l => ({
+    mois: l.mois, id: l.id_salarie, nom: l.salarie,
+    contrat: l.entite_contrat, charge: l.entite_charge,
+    socContrat: l.societe_contrat || l.entite_contrat,
+    socCharge:  l.societe_charge  || l.entite_charge,
+    pole: l.pole || '', nature: l.nature,
+    quote: Number(l.quote_part) || 0,
+    refac: vrai(l.refacture), repli: vrai(l.repli),
+    montant: Number(l.montant) || 0
+  }));
+
+  const annees = [...new Set(L.map(l => l.mois.slice(0, 4)))].sort();
+  const parAn = {};
+  annees.forEach(a => parAn[a] = {
+    an: a, total: 0, refac: 0, repli: 0,
+    nat: {}, paires: {}, sal: {}, mois: {}, benef: {}
+  });
+
+  L.forEach(l => {
+    const x = parAn[l.mois.slice(0, 4)];
+    if (!x) return;
+    x.total += l.montant;
+    x.nat[l.nature] = (x.nat[l.nature] || 0) + l.montant;
+    if (l.repli) x.repli += l.montant;
+
+    const mm = x.mois[l.mois] || (x.mois[l.mois] = {total: 0, refac: 0, benef: {}});
+    mm.total += l.montant;
+
+    /* Une ligne par salarié, entité de CONTRAT et entité de charge.
+       L'entité de contrat fait partie de la clé : un salarié passé de
+       Visiperf à Orixa Media en avril occupe deux lignes, parce que son
+       coût était interne avant et refacturable après. Regrouper sur le
+       seul couple salarié-charge donnerait une ligne au statut de la
+       première, et un total mêlant les deux natures. */
+    const k = l.id + '|' + l.contrat + '|' + l.charge;
+    const s = x.sal[k] || (x.sal[k] = {id: l.id, nom: l.nom, pole: l.pole,
+      contrat: l.contrat, charge: l.charge, soc: l.socCharge,
+      quote: 0, refac: l.refac, nat: {}, total: 0, mois: {}});
+    if (l.pole && !s.pole) s.pole = l.pole;
+    if (l.quote) s.quote = Math.max(s.quote, l.quote);
+    s.total += l.montant;
+    s.nat[l.nature] = (s.nat[l.nature] || 0) + l.montant;
+    s.mois[l.mois] = (s.mois[l.mois] || 0) + l.montant;
+
+    if (!l.refac) return;
+    x.refac += l.montant;
+    mm.refac += l.montant;
+    mm.benef[l.socCharge] = (mm.benef[l.socCharge] || 0) + l.montant;
+
+    const pk = l.socContrat + '\u0000' + l.socCharge;
+    const pr = x.paires[pk] || (x.paires[pk] =
+      {de: l.socContrat, vers: l.socCharge, total: 0, sal: new Set(), mois: {}});
+    pr.total += l.montant;
+    pr.sal.add(l.id);
+    pr.mois[l.mois] = (pr.mois[l.mois] || 0) + l.montant;
+
+    const b = x.benef[l.socCharge] || (x.benef[l.socCharge] =
+      {nom: l.socCharge, total: 0, de: {}, sal: new Set()});
+    b.total += l.montant;
+    b.de[l.socContrat] = (b.de[l.socContrat] || 0) + l.montant;
+    b.sal.add(l.id);
+  });
+
+  /* nombre de salariés distincts, par exercice */
+  annees.forEach(a => {
+    const x = parAn[a];
+    x.nbSal   = new Set(Object.values(x.sal).map(s => s.id)).size;
+    x.nbRefac = new Set(Object.values(x.sal).filter(s => s.refac)
+                                            .map(s => s.id)).size;
+  });
+
+  return {L, annees, parAn};
+}
+
+/* La masse salariale de tout le groupe, agrégée. Quatre grandeurs par
+   société et par exercice, et elles ne se confondent pas :
+     · portée   — le coût des contrats qu'elle signe ;
+     · sortante — ce qu'elle refacture aux autres ;
+     · reçue    — ce que les autres lui refacturent ;
+     · supportée — ce qui lui reste en charge, portée − sortante + reçue.
+   Une holding qui porte 750 K€ et en refacture 738 K€ n'a pas une masse
+   salariale de 750 K€ : elle en supporte 14 K€. */
+function agregerSocietes(lignes){
+  const annees = [...new Set(lignes.map(l => l.mois.slice(0, 4)))].sort();
+  const parAn = {};
+  annees.forEach(a => parAn[a] = {total: 0, nat: {}, soc: {}, mois: {}});
+  const cree = (x, s) => x.soc[s] || (x.soc[s] =
+    {nom: s, porte: 0, sort: 0, recu: 0, garde: 0});
+
+  lignes.forEach(l => {
+    const x = parAn[l.mois.slice(0, 4)];
+    if (!x) return;
+    const v = Number(l.montant) || 0;
+    const a = l.societe_contrat, b = l.societe_charge;
+    x.total += v;
+    x.nat[l.nature] = (x.nat[l.nature] || 0) + v;
+    x.mois[l.mois] = (x.mois[l.mois] || 0) + v;
+    const A = cree(x, a), B = cree(x, b);
+    A.porte += v;
+    if (a === b) A.garde += v; else { A.sort += v; B.recu += v; }
+  });
+  annees.forEach(a => {
+    const x = parAn[a];
+    Object.values(x.soc).forEach(s => s.supporte = s.garde + s.recu);
+    x.refac = Object.values(x.soc).reduce((t, s) => t + s.sort, 0);
+  });
+  return {annees, parAn};
+}
+
+/* ═══════════════════════════ AFFICHAGE ═══════════════════════════ */
+
+/* L'exercice en cours est incomplet : le comparer à douze mois de N-1
+   ferait apparaître une chute là où il n'y a qu'un calendrier. On ne
+   retient donc de N-1 que les mois déjà écoulés cette année. */
+function comparable(x, prec){
+  if (!prec) return null;
+  const mois = new Set(Object.keys(x.mois).map(m => m.slice(5)));
+  const r = {total: 0, refac: 0, nb: mois.size};
+  Object.keys(prec.mois).forEach(m => {
+    if (!mois.has(m.slice(5))) return;
+    r.total += prec.mois[m].total;
+    r.refac += prec.mois[m].refac;
+  });
+  return r;
+}
+
+function vueKpis(x, prec, g){
+  const c = comparable(x, prec);
+  const base = c ? ' (' + c.nb + ' mois)' : '';
+  const ecart = (v, p) => {
+    if (!p) return '<b class="nil">—</b>';
+    const d = v - p;
+    return '<b style="color:' + (d >= 0 ? 'var(--good)' : 'var(--bad)') + '">'
+         + (d >= 0 ? '+' : '') + court(d) + '</b>';
+  };
+  /* la part portée par la holding : ce qu'elle avance pour les filiales */
+  const holding = Object.values(x.paires)
+    .filter(p => teinte(p.de).cl === 'e-or')
+    .reduce((t, p) => t + p.total, 0);
+  const nbPaires = Object.keys(x.paires).length;
+  const nbBenef  = Object.keys(x.benef).length;
+
+  return '<section class="kpis">'
+
+    + '<div class="kpi"><div class="kpi-l">Refacturé sur l’exercice</div>'
+    + '<div class="kpi-v">' + gros(x.refac) + '</div>'
+    + '<div class="kpi-s">' + (g ? pct(x.refac, g.total)
+        + ' de la masse salariale du groupe'
+        : pct(x.refac, x.total) + ' du coût du périmètre') + '</div>'
+    + '<div class="kpi-rows">'
+    + '<div class="kpi-r"><span>porté par la holding</span><b class="'
+    + (holding ? '' : 'nil') + '">' + (holding ? court(holding) : '—') + '</b></div>'
+    + '<div class="kpi-r"><span>vs N-1' + base + '</span>'
+    + ecart(x.refac, c && c.refac) + '</div>'
+    + '</div></div>'
+
+    + '<div class="kpi k2"><div class="kpi-l">Salariés refacturés</div>'
+    + '<div class="kpi-v">' + x.nbRefac + '</div>'
+    + '<div class="kpi-s">sur ' + x.nbSal + ' au périmètre intragroupe</div>'
+    + '<div class="kpi-rows">'
+    + '<div class="kpi-r"><span>flux à émettre</span><b>' + nbPaires + '</b></div>'
+    + '<div class="kpi-r"><span>entités bénéficiaires</span><b>' + nbBenef + '</b></div>'
+    + '</div></div>'
+
+    /* Le dénominateur est la masse salariale de TOUT le groupe, pas celle
+       du périmètre intragroupe : rapporter le refacturé au seul périmètre
+       qui le produit donnerait un ratio qui frôle 90 % et ne dirait rien
+       du poids réel de l'opération. */
+    + '<div class="kpi k3"><div class="kpi-l">'
+    + (g ? 'Masse salariale du groupe' : 'Coût du périmètre') + '</div>'
+    + '<div class="kpi-v">' + gros(g ? g.total : x.total) + '</div>'
+    + '<div class="kpi-s">charges patronales comprises</div>'
+    + '<div class="kpi-rows">'
+    + (g
+        ? '<div class="kpi-r"><span>dont primes</span><b class="'
+          + (g.nat.prime ? '' : 'nil') + '">'
+          + (g.nat.prime ? court(g.nat.prime) : '—') + '</b></div>'
+          + '<div class="kpi-r"><span>dont soldes de tout compte</span><b class="'
+          + (g.nat.stc ? '' : 'nil') + '">'
+          + (g.nat.stc ? court(g.nat.stc) : '—') + '</b></div>'
+        : '<div class="kpi-r"><span>dont fixe</span><b>'
+          + (x.nat.fixe ? court(x.nat.fixe) : '—') + '</b></div>'
+          + '<div class="kpi-r"><span>dont primes</span><b class="'
+          + (x.nat.prime ? '' : 'nil') + '">'
+          + (x.nat.prime ? court(x.nat.prime) : '—') + '</b></div>')
+    + '</div></div>'
+
+    + '<div class="kpi k5"><div class="kpi-l">Actualisation</div>'
+    + '<div class="maj"><span class="maj-dot o"></span><span class="maj-v">lecture…</span></div>'
+    + '<div class="kpi-s maj-s" style="margin-top:6px">'
+    + '<span style="color:var(--txt-3)">interrogation des tables</span></div></div>'
+
+    + '</section>';
+}
+
+/* Un panneau par entité qui SUPPORTE la charge : c'est elle qui sera
+   facturée, et le détail dit par qui. Lire dans l'autre sens — une
+   colonne par émetteur — obligerait à additionner mentalement plusieurs
+   panneaux pour savoir ce qu'une filiale doit. */
+function vueFlux(x){
+  const bs = Object.values(x.benef).sort((a, b) => b.total - a.total);
+  if (!bs.length) return '<section class="card full">'
+    + '<h2 class="ctitle">Refacturation par entité bénéficiaire</h2>'
+    + '<div class="ent-vide">Aucun coût ne traverse de frontière sur cet '
+    + 'exercice.</div></section>';
+
+  return '<section class="card full">'
+    + '<h2 class="ctitle">Refacturation par entité bénéficiaire</h2>'
+    + '<div class="entites">'
+    + bs.map(b => {
+        const t = teinte(b.nom);
+        const des = Object.entries(b.de).sort((p, q) => q[1] - p[1]);
+        const max = des.reduce((m, d) => Math.max(m, d[1]), 0) || 1;
+        return '<div class="ent ' + t.cl + '">'
+          + '<div class="ent-n"><i style="background:' + t.c + '"></i>'
+          + echappe(b.nom) + '</div>'
+          + '<div class="ent-t">' + court(b.total) + '</div>'
+          + '<div class="ent-sum"><span>' + b.sal.size + ' salarié'
+          + (b.sal.size > 1 ? 's' : '') + '</span><span>'
+          + pct(b.total, x.refac) + ' du refacturé</span></div>'
+          + '<div class="ent-rows">'
+          + '<div class="erow ehead"><em>Supporté par</em><span>Montant</span></div>'
+          + des.map(([de, v]) => '<div class="erow">'
+              + '<b style="width:' + (100 * v / max).toFixed(1) + '%"></b>'
+              + '<em>' + echappe(de) + '</em>'
+              + '<span>' + eur(v) + '</span></div>').join('')
+          + '</div></div>';
+      }).join('')
+    + '</div></section>';
+}
+
+/* Ce que chaque société supporte en définitive. La colonne qui compte
+   est la dernière : une société peut porter beaucoup de contrats et n'en
+   supporter presque rien, ou l'inverse. C'est elle, et non la masse
+   salariale portée, qui pèse sur le résultat de chacune. */
+function vueSocietes(g){
+  if (!g) return '';
+  const ss = Object.values(g.soc).sort((a, b) => b.supporte - a.supporte);
+  if (!ss.length) return '';
+  const max = ss.reduce((m, s) => Math.max(m, s.supporte), 0) || 1;
+  return '<section class="card full">'
+    + '<h2 class="ctitle">Ce que chaque société supporte</h2>'
+    + '<div class="tab-wrap"><table class="tab"><thead><tr>'
+    + '<th>Société</th><th class="opt">MS portée</th>'
+    + '<th>Refacturée</th><th>Reçue</th>'
+    + '<th>MS supportée</th><th class="opt2">Part du groupe</th>'
+    + '</tr></thead><tbody>'
+    + ss.map(s => '<tr>'
+        + '<td><span class="pt"><i style="background:' + teinte(s.nom).c
+        + '"></i>' + echappe(s.nom) + '</span></td>'
+        + '<td class="opt">' + court(s.porte) + '</td>'
+        + '<td>' + (s.sort ? '<span style="color:var(--bad)">− '
+            + court(s.sort) + '</span>' : '<span class="nil">—</span>') + '</td>'
+        + '<td>' + (s.recu ? '<span style="color:var(--good)">+ '
+            + court(s.recu) + '</span>' : '<span class="nil">—</span>') + '</td>'
+        + '<td>' + court(s.supporte) + '</td>'
+        + '<td class="opt2"><span class="jauge"><span class="jauge-b">'
+        + '<i style="width:' + Math.min(100, 100 * s.supporte / max).toFixed(1)
+        + '%"></i></span>' + pct(s.supporte, g.total) + '</span></td>'
+        + '</tr>').join('')
+    + '<tr class="somme"><td>Groupe</td>'
+    + '<td class="opt">' + court(g.total) + '</td>'
+    + '<td>' + (g.refac ? '− ' + court(g.refac) : '—') + '</td>'
+    + '<td>' + (g.refac ? '+ ' + court(g.refac) : '—') + '</td>'
+    + '<td>' + court(g.total) + '</td><td class="opt2"></td></tr>'
+    + '</tbody></table></div>'
+    + '</section>';
+}
+
+/* Avant 2024 la masse salariale réalisée n'est pas chargée en entier :
+   seules des primes figurent en base, et un exercice qui n'affiche que
+   des primes se compare mal aux suivants. */
+const PREMIER_EXERCICE = '2024';
+
+/* ---- cartes repliables, aperçu cinq lignes ---- */
+function pliable(titre, resume, contenu){
+  return '<section class="card full">'
+    + '<h2 class="ctitle">' + titre + '</h2>'
+    + '<span class="pli-r2">' + resume + '</span>'
+    + contenu + '</section>';
+}
+const SEUIL = 5;
+function poserApercus(){
+  document.querySelectorAll('#corps .card.full table').forEach(t => {
+    if (t.dataset.ap) return;
+    t.dataset.ap = '1';
+    const tous = [...t.querySelectorAll('tbody tr')];
+    const l = tous.filter(r => !r.classList.contains('somme'));
+    if (l.length <= SEUIL + 2) return;
+    const cache = l.slice(SEUIL);
+    const somme = tous.filter(r => r.classList.contains('somme'));
+    const voir = v => { cache.forEach(r => r.hidden = !v);
+                        somme.forEach(r => r.hidden = !v);
+                        b.textContent = v ? 'Replier'
+                          : 'Afficher les ' + cache.length + ' autres lignes';
+                        b.classList.toggle('on', v); };
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ap-plus';
+    t.closest('.card.full').appendChild(b);
+    let ouvert = false;
+    b.onclick = () => { ouvert = !ouvert; voir(ouvert); };
+    voir(false);
+  });
+}
+
+/* Base de refacturation : un bloc par société facturée, et dans chaque
+   bloc une ligne par salarié, mois par mois. C'est la pièce qui part
+   avec la facture — le destinataire doit pouvoir pointer chaque euro
+   sur une personne, sans avoir à démêler les flux des autres sociétés.
+
+   Un bloc par COUPLE émetteur-destinataire, et non par destinataire :
+   Orixa Media est refacturée par la holding pour onze personnes et par
+   Visiperf pour une seule, ce qui fait deux factures, de deux émetteurs,
+   avec deux numéros et deux échéances. Les réunir sous un même total
+   obligerait à les redémêler au moment de les émettre.
+
+   Chaque cellule est arrondie à l'euro et les totaux somment les
+   cellules ARRONDIES : le tableau tombe juste dans les deux sens. Un
+   total calculé sur les valeurs exactes afficherait un écart d'un ou
+   deux euros avec la somme visible — inacceptable sur une pièce
+   comptable. */
+function vueFacturation(x){
+  const an = D.L.filter(l => l.mois.slice(0, 4) === ANNEE && l.refac);
+  if (!an.length) return '';
+
+  const mois = [];
+  for (let m = 1; m <= 12; m++) mois.push(ANNEE + '-' + String(m).padStart(2, '0'));
+  const connu = m => !!x.mois[m];
+  const n = v => v === undefined || v === 0 ? '<span class="nil">·</span>'
+                                            : nf.format(v);
+
+  /* un groupe par flux, une ligne par salarié */
+  const B = {};
+  an.forEach(l => {
+    const k = l.socContrat + '\u0000' + l.socCharge;
+    const b = B[k] || (B[k] =
+      {de: l.socContrat, vers: l.socCharge, lignes: {}, total: 0});
+    const r = b.lignes[l.id] || (b.lignes[l.id] = {nom: l.nom, m: {}});
+    r.m[l.mois] = (r.m[l.mois] || 0) + l.montant;
+    b.total += l.montant;
+  });
+
+  /* la facture la plus lourde d'abord */
+  return Object.values(B).sort((a, b) => b.total - a.total).map(b => {
+    /* arrondi d'abord, somme ensuite */
+    const ls = Object.values(b.lignes).map(r => {
+      const cel = {}; let tot = 0;
+      mois.forEach(m => {
+        if (r.m[m] === undefined) return;
+        cel[m] = Math.round(r.m[m]);
+        tot += cel[m];
+      });
+      return {nom: r.nom, cel, tot};
+    }).filter(r => r.tot !== 0).sort((p, q) => q.tot - p.tot);
+    if (!ls.length) return '';
+
+    const col = {};
+    mois.forEach(m => col[m] = ls.reduce((t, r) => t + (r.cel[m] || 0), 0));
+    const total = ls.reduce((t, r) => t + r.tot, 0);
+
+    return pliable(
+      'Refacturation ' + echappe(b.de) + ' → ' + echappe(b.vers)
+        + ' · ' + ANNEE,
+      ls.length + ' salarié' + (ls.length > 1 ? 's' : '') + ' · '
+        + nf.format(total) + ' € à facturer par ' + echappe(b.de)
+        + ' à ' + echappe(b.vers),
+      '<div class="tab-wrap"><table class="tab fact"><thead><tr>'
+      + '<th class="fact-c">Salarié</th>'
+      + mois.map(m => '<th class="fact-m' + (connu(m) ? '' : ' v') + '">'
+          + MOIS_COURT[Number(m.slice(5)) - 1] + '</th>').join('')
+      + '<th class="fact-t" title="Somme des douze mois, arrondis à l’euro.">'
+      + 'Total</th></tr></thead><tbody>'
+      + ls.map(r => '<tr>'
+          + '<td class="fact-c"><span class="pt"><i style="background:'
+          + teinte(b.de).c + '"></i>' + echappe(r.nom) + '</span></td>'
+          + mois.map(m => '<td class="fact-m' + (r.cel[m] < 0 ? ' neg' : '')
+              + '">' + n(r.cel[m]) + '</td>').join('')
+          + '<td class="fact-t">' + nf.format(r.tot) + '</td></tr>').join('')
+      + '<tr class="somme"><td class="fact-c">Total</td>'
+      + mois.map(m => '<td class="fact-m' + (col[m] < 0 ? ' neg' : '') + '">'
+          + n(col[m]) + '</td>').join('')
+      + '<td class="fact-t">' + nf.format(total) + '</td>'
+      + '</tr></tbody></table></div>');
+  }).join('');
+}
+
+/* Une ligne par salarié, une colonne par société de charge. C'est à ce
+   grain qu'on lit une répartition : voir d'un coup d'œil que 95 % d'un
+   coût part chez Orixa Media et 5 % chez Visiperf, sans recomposer la
+   personne à partir de trois lignes séparées.
+
+   La colonne où la société de charge est celle du contrat porte la part
+   gardée, non refacturable : elle est grisée. Sans elle, la somme des
+   quotes-parts ne ferait pas 100 % et le tableau paraîtrait faux.
+
+   L'imputation analytique fine — Feedcast, produit d'Orixa Media — est
+   rappelée sous le nom : la colonne, elle, porte la société, seule à
+   pouvoir émettre une facture. */
+function vueSalaries(x){
+  const an = D.L.filter(l => l.mois.slice(0, 4) === ANNEE);
+  if (!an.length) return '';
+
+  const S0 = {};
+  an.forEach(l => {
+    const s = S0[l.id] || (S0[l.id] = {id: l.id, nom: l.nom, pole: '',
+      contrats: [], ch: {}, fins: {}, total: 0, refac: 0});
+    if (l.pole && !s.pole) s.pole = l.pole;
+    if (s.contrats.indexOf(l.socContrat) < 0) s.contrats.push(l.socContrat);
+    const c = s.ch[l.socCharge] || (s.ch[l.socCharge] =
+      {montant: 0, refac: 0, qm: {}});
+    c.montant += l.montant;
+    if (l.refac) c.refac += l.montant;
+    /* La quote-part se somme PAR MOIS sur les imputations fines d'une
+       même société : 45 % Feedcast et 50 % Orixa Media font 95 % chez
+       Orixa Media, et non 50 %. Prendre le maximum afficherait la plus
+       grosse des deux parts comme si elle était la part totale. */
+    if (l.quote) c.qm[l.mois] = (c.qm[l.mois] || 0) + l.quote;
+    if (l.socCharge !== l.charge) s.fins[l.charge] = true;
+    s.total += l.montant;
+    if (l.refac) s.refac += l.montant;
+  });
+  const ls = Object.values(S0).sort((a, b) =>
+    (b.refac - a.refac) || (b.total - a.total));
+
+  /* Les colonnes sont les sociétés réellement chargées sur l'exercice,
+     la plus lourde d'abord. Une société sans un euro n'a pas de colonne. */
+  const tot = {};
+  ls.forEach(s => Object.entries(s.ch).forEach(([k, c]) =>
+    tot[k] = (tot[k] || 0) + c.montant));
+  const cols = Object.keys(tot).sort((a, b) => tot[b] - tot[a]);
+  const nbR = ls.filter(s => s.refac).length;
+  /* Le pied somme les cellules TELLES QU'ELLES SONT AFFICHÉES : un total
+     qui ne retombe pas sur la colonne qu'il clôt fait douter du reste. */
+  const som = f => ls.reduce((t, s) => t + Math.round(f(s) || 0), 0);
+
+  return pliable('Détail par salarié',
+    ls.length + ' salarié' + (ls.length > 1 ? 's' : '') + ' · ' + nbR
+      + ' refacturable' + (nbR > 1 ? 's' : ''),
+    '<div class="tab-wrap"><table class="tab"><thead><tr>'
+    + '<th>Salarié</th><th class="opt">Pôle</th><th class="opt">Contrat</th>'
+    + cols.map(k => '<th>Charge ' + echappe(k) + '</th>').join('')
+    + '<th>Total</th></tr></thead><tbody>'
+    + ls.map(s => {
+        const fins = Object.keys(s.fins);
+        return '<tr>'
+          + '<td><span class="pt"><i style="background:'
+          + (s.refac ? teinte(s.contrats[0]).c : 'rgba(255,255,255,.18)')
+          + '"></i>' + echappe(s.nom) + '</span>'
+          + (fins.length
+              ? '<span class="mini">dont ' + fins.map(echappe).join(', ') + '</span>'
+              : (s.refac ? '' : '<span class="mini">non refacturé</span>')) + '</td>'
+          + '<td class="opt">' + (s.pole ? echappe(s.pole)
+              : '<span class="nil">—</span>') + '</td>'
+          + '<td class="opt">' + s.contrats.map(echappe).join(' → ') + '</td>'
+          + cols.map(k => {
+              const c = s.ch[k];
+              if (!c) return '<td><span class="nil">—</span></td>';
+              /* Trois états, et les confondre serait coûteux : tout
+                 refacturé, rien refacturé, ou un mélange — le cas d'un
+                 salarié qui a changé d'entité en cours d'exercice. */
+              const rien = c.refac === 0;
+              const tout = Math.abs(c.refac - c.montant) < 0.01;
+              /* la quote-part ne s'affiche que si elle n'a pas bougé de
+                 l'exercice : une valeur moyenne ne veut rien dire ici */
+              const qs = [...new Set(Object.values(c.qm)
+                            .map(v => Math.round(v * 1000)))];
+              const q = qs.length === 1 ? qs[0] / 10 : null;
+              const note = [];
+              if (q !== null) note.push(q.toFixed(q % 1 ? 1 : 0) + ' %');
+              if (rien) note.push('gardé');
+              else if (!tout) note.push('dont ' + eur(c.refac) + ' refacturé');
+              return '<td' + (rien ? ' class="garde"' : '') + '>'
+                + eur(c.montant)
+                + (note.length ? '<span class="mini">' + note.join(' · ')
+                                 + '</span>' : '')
+                + '</td>';
+            }).join('')
+          + '<td><b class="survol" data-sal="' + echappe(s.id) + '">'
+          + eur(s.total) + '</b></td></tr>';
+      }).join('')
+    + '<tr class="somme"><td>Total</td><td class="opt"></td><td class="opt"></td>'
+    + cols.map(k => '<td>'
+        + eur(som(s => s.ch[k] && s.ch[k].montant)) + '</td>').join('')
+    + '<td>' + eur(som(s => s.total)) + '</td></tr>'
+    + '</tbody></table></div>');
+}
+
+/* ---- survol : le détail mensuel d'une ligne ---- */
+function attacherPop(el, contenu){
+  const pop = document.getElementById('pop');
+  el.onmouseenter = () => {
+    pop.innerHTML = contenu();
+    pop.hidden = false;
+    const r = el.getBoundingClientRect();
+    const h = pop.offsetHeight, w = pop.offsetWidth;
+    let left = r.right + 14;
+    if (left + w > innerWidth - 10) left = r.left - w - 14;
+    pop.style.left = Math.max(10, left) + 'px';
+    pop.style.top  = Math.max(10, Math.min(r.top + r.height / 2 - h / 2,
+                                           innerHeight - h - 10)) + 'px';
+  };
+  el.onmouseleave = () => { pop.hidden = true; };
+}
+function popSalarie(id){
+  const an = D.L.filter(l => l.id === id && l.mois.slice(0, 4) === ANNEE);
+  if (!an.length) return '';
+  const M = {}; let tot = 0, refac = 0;
+  an.forEach(l => { M[l.mois] = (M[l.mois] || 0) + l.montant;
+                    tot += l.montant; if (l.refac) refac += l.montant; });
+  return '<h4>' + echappe(an[0].nom) + ' · ' + ANNEE + '</h4>'
+    + Object.keys(M).sort().map(m => '<div class="pop-row"><em>' + libMois(m)
+        + '</em><span>' + eur(M[m]) + '</span></div>').join('')
+    + '<div class="pop-tot"><em>Coût total</em><span>' + eur(tot) + '</span></div>'
+    + '<div class="pop-row" style="padding-top:5px"><em>dont refacturable</em>'
+    + '<span>' + (refac ? eur(refac) : '—') + '</span></div>';
+}
+
+/* ---- fraîcheur ---- */
+const SEUIL_VERT = 5 * 60, SEUIL_ORANGE = 12 * 60;   /* minutes */
+const SEUIL_CLASSEUR = 180;                          /* jours */
+function depuisLe(ms){
+  const m = Math.floor((Date.now() - ms) / 60000);
+  if (m < 60)   return 'il y a ' + m + ' min';
+  if (m < 2880) return 'il y a ' + Math.round(m / 60) + ' h';
+  const j = Math.round(m / 1440);
+  return j < 60 ? 'il y a ' + j + ' j' : 'il y a ' + Math.round(j / 30) + ' mois';
+}
+function poserFraicheur(etat, texte, detail){
+  const v = document.querySelector('.maj .maj-v');
+  const d = document.querySelector('.maj .maj-dot');
+  const s = document.querySelector('.maj-s');
+  if (!v) return;
+  v.textContent = texte;
+  v.style.color = etat === 'r' ? 'var(--bad)' : 'var(--txt)';
+  d.className = 'maj-dot ' + etat;
+  s.innerHTML = detail;
+}
+async function actualisation(tok){
+  try {
+    const l = await bqQuery(tok, Q_FRAICHEUR);
+    const ts = l.filter(x => x.genre === 'table').map(x => Number(x.valeur))
+                .filter(x => x > 0);
+    const ids = [...new Set(l.filter(x => x.genre === 'classeur')
+                             .map(x => x.valeur).filter(Boolean))];
+    if (!ts.length) throw new Error('aucun horodatage de table');
+    const vieux = Math.min(...ts);
+    const min = Math.round((Date.now() - vieux) / 60000);
+    const etat = min <= SEUIL_VERT ? 'v' : min <= SEUIL_ORANGE ? 'o' : 'r';
+    const dt = new Date(vieux);
+    let sup = '';
+    const vus = [];
+    await Promise.all(ids.map(async id => {
+      try {
+        const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id
+          + '?fields=modifiedTime', {headers:{Authorization:'Bearer ' + tok}});
+        if (!r.ok) return;
+        const j = await r.json();
+        if (j.modifiedTime) vus.push(Date.parse(j.modifiedTime));
+      } catch(e){ /* classeur injoignable : la ligne est omise */ }
+    }));
+    if (vus.length){
+      const vc = Math.max(...vus);
+      const jours = Math.floor((Date.now() - vc) / 86400000);
+      sup = '<br><span style="color:' + (jours > SEUIL_CLASSEUR ? '#fbbf24' : 'var(--txt-3)')
+          + '">classeur de paie modifié ' + depuisLe(vc) + '</span>';
+    }
+    poserFraicheur(etat, depuisLe(vieux),
+      '<span style="color:var(--txt-3)">'
+      + dt.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'})
+      + ' à ' + dt.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
+      + '</span>' + sup);
+  } catch(e){
+    poserFraicheur('o', 'inconnue',
+      '<span style="color:var(--txt-3)">La date du dernier rafraîchissement n’a pas '
+      + 'pu être obtenue. Les montants affichés, eux, proviennent bien des tables.</span>');
+  }
+}
+
+/* ═══════════════════════════ RENDU ═══════════════════════════ */
+
+function selecteurAnnees(){
+  const el = document.getElementById('ans');
+  el.innerHTML = D.annees
+    .filter(a => a >= PREMIER_EXERCICE || a === ANNEE)
+    .reverse().map(a =>
+    '<button type="button" class="an' + (a === ANNEE ? ' on' : '') + '" data-an="' + a
+    + '">' + a + '</button>').join('');
+  el.querySelectorAll('button').forEach(b =>
+    b.onclick = () => { ANNEE = b.dataset.an; rendre(); });
+}
+
+function rendre(){
+  const x = D.parAn[ANNEE];
+  const prec = D.parAn[String(Number(ANNEE) - 1)];
+  const g = S ? S.parAn[ANNEE] : null;
+  document.getElementById('corps').innerHTML =
+      vueKpis(x, prec, g)
+    + vueFlux(x)
+    + vueSocietes(g)
+    + vueSalaries(x)
+    + vueFacturation(x)
+    + (x.repli
+        ? '<p class="note">' + eur(x.repli) + ' de dépenses ne tombent dans '
+          + 'aucune période de contrat connue et ont été rattachées au contrat '
+          + 'le plus proche. Les dates d’embauche et de sortie font foi : '
+          + 'ce sont elles qu’il faut corriger pour que ce montant disparaisse.</p>'
+        : '');
+
+  selecteurAnnees();
+  poserApercus();
+  document.querySelectorAll('.tab b.survol[data-sal]').forEach(b =>
+    attacherPop(b, () => popSalarie(b.dataset.sal)));
+
+  document.getElementById('topS').textContent = '';
+}
+
+async function init(){
+  const tok = loadToken();
+  if (!tok){ window.location.href = 'index.html'; return; }
+  try {
+    const u = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+      {headers:{Authorization:'Bearer ' + tok}}).then(r => r.json());
+    if (u.error) throw new Error(u.error.message);
+    document.getElementById('uName').textContent = u.name || u.email || '';
+    if (u.picture) document.getElementById('uAvatar').src = u.picture;
+
+    /* Le contrôle d'accès et la lecture des données ne dépendent pas l'un
+       de l'autre : les enchaîner ajouterait un aller-retour complet avant
+       le moindre affichage. L'échec de la lecture ne doit pas masquer
+       l'écran d'accès refusé, d'où le .catch qui diffère l'erreur. */
+    const [autorise, lignes, soc] = await Promise.all([
+      controlerAcces(tok),
+      bqQuery(tok, Q_DETAIL).catch(e => e),
+      bqQuery(tok, Q_SOCIETES).catch(e => e)
+    ]);
+    if (!autorise) return;
+    if (lignes instanceof Error) throw lignes;
+    TOK = tok;
+    /* La vue par société est un enrichissement : si elle échoue, la page
+       se rend sans elle plutôt que de ne rien montrer. */
+    S = (soc instanceof Error || !soc.length) ? null : agregerSocietes(soc);
+
+    if (!lignes.length){
+      document.getElementById('topS').textContent = 'aucune donnée';
+      document.getElementById('corps').innerHTML =
+        '<div class="panne"><b>Aucun coût intragroupe</b>'
+        + 'Aucun salarié n’a de répartition sortant de son entité de contrat. '
+        + 'Soit les tables matérialisées de la masse salariale n’ont pas encore '
+        + 'été reconstruites par MAJ_tables, soit la répartition n’est pas '
+        + 'renseignée.</div>';
+      actualisation(tok);
+      return;
+    }
+
+    D = agreger(lignes);
+    ANNEE = D.annees[D.annees.length - 1];
+    rendre();
+    actualisation(tok);
+  } catch(e){
+    const msg = String((e && e.message) || e);
+    if (/401|UNAUTHENTICATED|invalid[_ ]token|Invalid Credentials/i.test(msg)){
+      clearToken(); window.location.href = 'index.html';
+    } else {
+      document.getElementById('topS').textContent = 'chargement interrompu';
+      document.getElementById('corps').innerHTML =
+        '<div class="panne"><b>Chargement interrompu</b>'
+        + 'Votre session reste ouverte. Rechargez la page pour réessayer.'
+        + '<code>' + echappe(msg) + '</code></div>';
+    }
+  }
+}
+
+init();
+</script>
