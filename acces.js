@@ -59,6 +59,7 @@
       icone: '<path d="M12 3 2 8h20z"/><path d="M5 21V10M9 21V10M15 21V10M19 21V10"/>'
            + '<path d="M3 21h18"/>' },
     apports:     { fichier: 'apports.html',          libelle: 'Apports d’affaire' },
+    ms:          { fichier: 'ms-intragroupe.html',   libelle: 'MS intragroupe' },
     parametres:  { fichier: 'parametres.html',       libelle: 'Mise à jour des tables' },
     panneau:     { fichier: 'panneau-controle.html', libelle: 'Panneau de contrôle' }
   };
@@ -66,7 +67,7 @@
   const PRINCIPALES = ['activite', 'marge_brute', 'historique', 'dettes'];
 
   const GROUPES = [
-    { id: 'suivi', libelle: 'Suivi', pages: ['apports'],
+    { id: 'suivi', libelle: 'Suivi', pages: ['apports', 'ms'],
       icone: '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>' },
     { id: 'param', libelle: 'Paramètres', pages: ['parametres', 'panneau'], bas: true,
       icone: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l'
